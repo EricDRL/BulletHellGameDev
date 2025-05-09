@@ -1,25 +1,18 @@
 <template>
   <div>
-    <!-- Menu -->
-    <div v-if="estado === 'menu'" class="menu">
-      <h1 style="color: white">Bullet Hell</h1>
-      <button @click="iniciarJogo">Iniciar Jogo</button>
-    </div>
-
-    <!-- Canvas -->
     <canvas
-      v-if="estado === 'jogando' || estado === 'gameover'"
       ref="canvas"
       :width="width"
       :height="height"
-      style="background: black; cursor: none; position: absolute; top: 0; left: 0;"
+      style="background: black; cursor: none;"
     ></canvas>
-
-    <!-- Game Over -->
-    <div v-if="estado === 'gameover'" class="menu">
-      <h1 style="color: white">Game Over</h1>
-      <p style="color: white">Pontos: {{ pontos }}</p>
-      <button @click="reiniciarJogo">Reiniciar</button>
+    <div v-if="estado === 'menu'" class="menu">
+      <h1 style="color: white;">Jogo Bullet Hell</h1>
+      <button @click="iniciarJogo">Iniciar Jogo</button>
+    </div>
+    <div v-if="estado === 'gameover'" class="gameover">
+      <h1 style="color: white;">Game Over</h1>
+      <button @click="reiniciarJogo">Reiniciar Jogo</button>
     </div>
   </div>
 </template>
@@ -34,6 +27,7 @@ export default {
       playerX: window.innerWidth / 2,
       playerY: window.innerHeight / 2,
       projectiles: [],
+      powerUps: [],
       estado: "menu",
       animationId: null,
       projectileInterval: null,
@@ -42,17 +36,22 @@ export default {
       tempo: 0,
       pontos: 0,
       nivel: 1,
-      velocidadeProjeteis: 3
+      velocidadeProjeteis: 3,
+      vidas: 3,
     };
   },
   methods: {
     iniciarJogo() {
+      this.playerX = this.width / 2;
+      this.playerY = this.height / 2;
       this.projectiles = [];
+      this.powerUps = [];
       this.estado = "jogando";
       this.tempo = 0;
       this.pontos = 0;
       this.nivel = 1;
       this.velocidadeProjeteis = 3;
+      this.vidas = 3;
       this.$nextTick(() => {
         this.setupControles();
         this.iniciarTimer();
@@ -60,19 +59,7 @@ export default {
       });
     },
     reiniciarJogo() {
-      this.playerX = this.width / 2;
-      this.playerY = this.height / 2;
-      this.projectiles = [];
-      this.estado = "jogando";
-      this.tempo = 0;
-      this.pontos = 0;
-      this.nivel = 1;
-      this.velocidadeProjeteis = 3;
-      this.$nextTick(() => {
-        this.setupControles();
-        this.iniciarTimer();
-        this.iniciarLoop();
-      });
+      this.iniciarJogo();
     },
     setupControles() {
       window.addEventListener("keydown", (e) => {
@@ -86,39 +73,61 @@ export default {
       clearInterval(this.tempoInterval);
       this.tempoInterval = setInterval(() => {
         this.tempo++;
-        if (this.tempo % 5 === 0 && this.nivel < 5) {
+        if (this.tempo % 15 === 0 && this.nivel < 5) {
           this.nivel++;
-          this.pontos += 100;
+          this.pontos += 25; // Pontos ao passar de fase
           this.velocidadeProjeteis += 1;
         }
+        this.pontos += 10; // Pontos a cada 5 segundos
       }, 1000);
     },
     iniciarLoop() {
       const canvas = this.$refs.canvas;
       const ctx = canvas.getContext("2d");
 
-      // Criação de projéteis
       const createProjectiles = () => {
         if (this.estado !== "jogando") return;
-        const angle = Math.random() * 2 * Math.PI;
-        const distance = 200;
-        const startX = this.playerX + distance * Math.cos(angle);
-        const startY = this.playerY + distance * Math.sin(angle);
 
-        const dx = this.playerX - startX;
-        const dy = this.playerY - startY;
-        const length = Math.hypot(dx, dy);
+        const quantidade = 2 + Math.floor(Math.random() * 3); // 2 a 4 projéteis
+        for (let i = 0; i < quantidade; i++) {
+          const angle = Math.random() * 2 * Math.PI;
+          const spawnDistance = 300 + Math.random() * 200;
+          const startX = this.playerX + spawnDistance * Math.cos(angle);
+          const startY = this.playerY + spawnDistance * Math.sin(angle);
 
-        this.projectiles.push({
-          x: startX,
-          y: startY,
-          r: 6,
-          xVel: (dx / length) * this.velocidadeProjeteis,
-          yVel: (dy / length) * this.velocidadeProjeteis
-        });
+          const dx = this.playerX - startX;
+          const dy = this.playerY - startY;
+          const length = Math.hypot(dx, dy);
+
+          this.projectiles.push({
+            x: startX,
+            y: startY,
+            r: 6,
+            xVel: (dx / length) * this.velocidadeProjeteis,
+            yVel: (dy / length) * this.velocidadeProjeteis,
+          });
+        }
       };
 
-      this.projectileInterval = setInterval(createProjectiles, 300);
+      const spawnPowerUp = () => {
+        if (this.estado !== "jogando") return;
+
+        const spawnChance = Math.random();
+        if (spawnChance < 0.05) { // 5% chance de spawnar um power-up a cada ciclo
+          const powerUp = {
+            x: Math.random() * this.width,
+            y: -50,
+            r: 10,
+            type: Math.random() < 0.5 ? "life" : "speed", // Tipo do power-up
+          };
+          this.powerUps.push(powerUp);
+        }
+      };
+
+      this.projectileInterval = setInterval(() => {
+        createProjectiles();
+        spawnPowerUp();
+      }, 300);
 
       const animate = () => {
         if (this.estado !== "jogando") {
@@ -128,25 +137,16 @@ export default {
           return;
         }
 
-        // Movimentação
         const speed = 5;
         if (this.keysPressed["ArrowUp"] || this.keysPressed["w"]) this.playerY -= speed;
         if (this.keysPressed["ArrowDown"] || this.keysPressed["s"]) this.playerY += speed;
         if (this.keysPressed["ArrowLeft"] || this.keysPressed["a"]) this.playerX -= speed;
         if (this.keysPressed["ArrowRight"] || this.keysPressed["d"]) this.playerX += speed;
 
-        // Limites
         this.playerX = Math.max(10, Math.min(this.width - 10, this.playerX));
         this.playerY = Math.max(10, Math.min(this.height - 10, this.playerY));
 
         ctx.clearRect(0, 0, this.width, this.height);
-
-        // Desenha jogador
-        ctx.beginPath();
-        ctx.arc(this.playerX, this.playerY, 10, 0, Math.PI * 2);
-        ctx.fillStyle = "cyan";
-        ctx.fill();
-        ctx.closePath();
 
         // HUD
         ctx.fillStyle = "white";
@@ -154,8 +154,16 @@ export default {
         ctx.fillText(`Tempo: ${this.tempo}s`, 20, 30);
         ctx.fillText(`Pontos: ${this.pontos}`, 20, 60);
         ctx.fillText(`Fase: ${this.nivel}`, 20, 90);
+        ctx.fillText(`Vidas: ${this.vidas}`, 20, 120);
 
-        // Atualiza projéteis
+        // Player
+        ctx.beginPath();
+        ctx.arc(this.playerX, this.playerY, 10, 0, Math.PI * 2);
+        ctx.fillStyle = "cyan";
+        ctx.fill();
+        ctx.closePath();
+
+        // Projéteis
         this.projectiles = this.projectiles.filter((p) => {
           p.x += p.xVel;
           p.y += p.yVel;
@@ -165,11 +173,13 @@ export default {
           const distance = Math.hypot(dx, dy);
 
           if (distance < p.r + 10) {
-            this.estado = "gameover";
+            this.vidas--;
+            if (this.vidas <= 0) {
+              this.estado = "gameover";
+            }
             return false;
           }
 
-          // Define cor baseada na fase
           let cor = "red";
           if (this.nivel === 2) cor = "lime";
           else if (this.nivel === 3) cor = "blue";
@@ -189,32 +199,68 @@ export default {
           );
         });
 
+        // Power-ups
+        this.powerUps = this.powerUps.filter((pu) => {
+          pu.y += 2; // Velocidade do power-up
+
+          // Verificando colisão com o player
+          const dx = pu.x - this.playerX;
+          const dy = pu.y - this.playerY;
+          const distance = Math.hypot(dx, dy);
+
+          if (distance < pu.r + 10) {
+            if (pu.type === "life") {
+              this.vidas++; // Adiciona vida
+            } else if (pu.type === "speed") {
+              this.velocidadeProjeteis += 1; // Aumenta a velocidade dos projéteis
+            }
+            return false; // Remove o power-up após pegar
+          }
+
+          ctx.beginPath();
+          ctx.arc(pu.x, pu.y, pu.r, 0, Math.PI * 2);
+          ctx.fillStyle = "yellow"; // Cor dos power-ups
+          ctx.fill();
+          ctx.closePath();
+
+          return pu.y <= this.height + 50; // Só mantém os power-ups dentro da tela
+        });
+
         this.animationId = requestAnimationFrame(animate);
       };
 
       animate();
-    }
-  }
+    },
+  },
 };
 </script>
 
-<style>
-body {
-  margin: 0;
-  overflow: hidden;
+<style scoped>
+canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: black;
+  cursor: none;
+  z-index: 0;
 }
-.menu {
-  position: absolute;
-  top: 40%;
+
+.menu, .gameover {
+  position: fixed;
+  top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  color: white;
   text-align: center;
-  z-index: 10;
+  z-index: 1;
 }
+
 button {
   padding: 10px 20px;
-  font-size: 20px;
-  margin-top: 20px;
+  font-size: 16px;
+  margin-top: 10px;
   cursor: pointer;
 }
 </style>
