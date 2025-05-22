@@ -18,10 +18,17 @@
 </template>
 
 <script>
+
+
+
+
 export default {
   name: "GameCanvas",
   data() {
     return {
+
+      fundos: [],
+fundoAtual: null,
       width: window.innerWidth,
       height: window.innerHeight,
       playerX: window.innerWidth / 2,
@@ -45,7 +52,25 @@ export default {
       boss: null, // dados do boss
       bossDirecao: 1, // 1 para descer, -1 para subir
     };
+    
   },
+
+  mounted() {
+  const carregarFundo = (num) =>
+    new Promise((resolve) => {
+      const img = new Image();
+      img.src = new URL(`../assets/background/bg${num}.png`, import.meta.url).href;
+
+      img.onload = () => resolve(img);
+    });
+
+  Promise.all([1, 2, 3, 4, 5].map(carregarFundo)).then((imgs) => {
+    this.fundos = imgs;
+    this.fundoAtual = imgs[0];
+  });
+  
+},
+
   methods: {
     iniciarJogo() {
       this.playerX = this.width / 2;
@@ -56,6 +81,8 @@ export default {
       this.tempo = 0;
       this.pontos = 0;
       this.nivel = 1;
+      this.fundoAtual = this.fundos[0];
+
       this.velocidadeProjeteis = 3;
       this.vidas = 3;
       this.slowAtivo = false;
@@ -160,6 +187,7 @@ export default {
           this.trocaFaseDelay = true;
           setTimeout(() => {
             this.nivel++;
+            this.fundoAtual = this.fundos[this.nivel - 1];
             this.pontos += 25; // Pontos ao passar de fase
             this.velocidadeProjeteis += 1;
 
@@ -180,12 +208,21 @@ export default {
       const ctx = canvas.getContext("2d");
 
       const animate = () => {
+       
+
         if (this.estado !== "jogando") {
           cancelAnimationFrame(this.animationId);
           clearInterval(this.projectileInterval);
           clearInterval(this.tempoInterval);
           return;
         }
+
+         if (this.fundoAtual) {
+  ctx.drawImage(this.fundoAtual, 0, 0, this.width, this.height);
+} else {
+  ctx.fillStyle = "black";
+  ctx.fillRect(0, 0, this.width, this.height);
+}
 
         const speed = 5;
         if (this.keysPressed["ArrowUp"] || this.keysPressed["w"])
@@ -200,7 +237,7 @@ export default {
         this.playerX = Math.max(10, Math.min(this.width - 10, this.playerX));
         this.playerY = Math.max(10, Math.min(this.height - 10, this.playerY));
 
-        ctx.clearRect(0, 0, this.width, this.height);
+        
 
         // HUD (sobreposto ao jogo)
         ctx.fillStyle = "white";
