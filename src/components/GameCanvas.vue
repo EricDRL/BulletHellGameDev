@@ -4,11 +4,11 @@
       ref="canvas"
       :width="width"
       :height="height"
-      style="background: black; cursor: none"
+      style="background: gray"
     ></canvas>
-    <div v-if="estado === 'menu'" class="menu">
-      <h1 style="color: white">Jogo Bullet Hell</h1>
-      <button @click="iniciarJogo">Iniciar Jogo</button>
+    <div v-if="estado === 'menu'" class="menu" style="display: flex; flex-direction: column;align-items: center; padding-bottom: 20px;">
+      <img src="../../public/LogoMenu.png" style="max-width: 500px" alt="LOGO">
+      <button style="min-width: 250px;" @click="iniciarJogo">Iniciar Jogo</button>
     </div>
     <div v-if="estado === 'gameover'" class="gameover">
       <h1 style="color: white">Game Over</h1>
@@ -395,7 +395,6 @@ canvas {
   width: 100vw;
   height: 100vh;
   background: black;
-  cursor: none;
   z-index: 0;
 }
 
