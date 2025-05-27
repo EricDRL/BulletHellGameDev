@@ -6,16 +6,65 @@
       :height="height"
       style="background: gray"
     ></canvas>
-    <div v-if="estado === 'menu'" class="menu" style="display: flex; flex-direction: column;align-items: center; padding-bottom: 20px;">
-      <img src="../../public/LogoMenu.png" style="max-width: 500px" alt="LOGO">
+
+    <div v-if="estado === 'menu'" class="menu" style="display: flex; flex-direction: column; align-items: center; padding-bottom: 20px;">
+      <img src="../../public/LogoMenu.png" style="max-width: 500px" alt="LOGO" />
       <button style="min-width: 250px;" @click="iniciarJogo">Iniciar Jogo</button>
     </div>
-    <div v-if="estado === 'gameover'" class="gameover">
+
+    <!-- Vídeo da HISTÓRIA INICIAL -->
+    <div
+      v-if="estado === 'historinha'"
+      class="historinha"
+      @click="avancarVideo"
+      style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: black; display: flex; justify-content: center; align-items: center; z-index: 10;"
+    >
+      <video
+        ref="videoPlayer"
+        :src="videosHistorinha[videoIndex]"
+        autoplay
+        muted
+        playsinline
+        @ended="avancarVideo"
+        style="position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; cursor: pointer;"
+      ></video>
+      <div
+        style="position: absolute; bottom: 20px; color: white; font-size: 18px; width: 100%; text-align: center; user-select: none;"
+      >
+      
+      </div>
+    </div>
+
+    <!-- Vídeo da MORTE (GAME OVER) -->
+    <div
+      v-if="estado === 'gameover' && mostrandoVideoMorte"
+      @click="sairDoVideoMorte"
+      style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: black; display: flex; justify-content: center; align-items: center; z-index: 20;"
+    >
+      <video
+        ref="videoMortePlayer"
+        :src="videoMorte"
+        autoplay
+        muted
+        playsinline
+        @ended="sairDoVideoMorte"
+        style="position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; cursor: pointer; z-index: 21;"
+      ></video>
+      <div
+        style="position: absolute; bottom: 20px; color: white; font-size: 18px; width: 100%; text-align: center; user-select: none; z-index: 22;"
+      >
+        
+      </div>
+    </div>
+
+    <div v-if="estado === 'gameover' && !mostrandoVideoMorte" class="gameover" style="text-align: center; margin-top: 20px;">
       <h1 style="color: white">Game Over</h1>
       <button @click="reiniciarJogo">Reiniciar Jogo</button>
     </div>
+
   </div>
 </template>
+
 
 <script>
 
@@ -24,38 +73,63 @@
 
 export default {
   name: "GameCanvas",
-  data() {
-    return {
+ data() {
+  return {
+    historinhaJaVista: false, 
+    fundos: [],
+    fundoAtual: null,
+    width: window.innerWidth,
+    height: window.innerHeight,
+    playerX: window.innerWidth / 2,
+    playerY: window.innerHeight / 2,
+    projectiles: [],
+    powerUps: [],
+    inimigos: [],
+    animationId: null,
+    projectileInterval: null,
+    tempoInterval: null,
+    keysPressed: {},
+    tempo: 0,
+    pontos: 0,
+    nivel: 1,
+    velocidadeProjeteis: 3,
+    vidas: 3,
+    slowAtivo: false,
+    slowTimeoutId: null,
+    trocaFaseDelay: false,
+    boss: null,
+    bossDirecao: 1,
 
-      fundos: [],
-fundoAtual: null,
-      width: window.innerWidth,
-      height: window.innerHeight,
-      playerX: window.innerWidth / 2,
-      playerY: window.innerHeight / 2,
-      projectiles: [],
-      powerUps: [],
-      inimigos: [],
-      estado: "menu",
-      animationId: null,
-      projectileInterval: null,
-      tempoInterval: null,
-      keysPressed: {},
-      tempo: 0,
-      pontos: 0,
-      nivel: 1,
-      velocidadeProjeteis: 3,
-      vidas: 3,
-      slowAtivo: false,
-      slowTimeoutId: null,
-      trocaFaseDelay: false,
-      boss: null, // dados do boss
-      bossDirecao: 1, // 1 para descer, -1 para subir
-    };
+    // Estados e vídeos
+    estado: "menu",  // só uma vez!
+    videoIndex: 0,
+    videoMorteIndex: 0,
+    mostrandoVideoMorte: false,
+
+    videosHistorinha: [
+      new URL('../assets/videos/video1.mp4', import.meta.url).href,
+      new URL('../assets/videos/video2.mp4', import.meta.url).href,
+      new URL('../assets/videos/video3.mp4', import.meta.url).href,
+      new URL('../assets/videos/video4.mp4', import.meta.url).href,
+      new URL('../assets/videos/video5.mp4', import.meta.url).href,
+      new URL('../assets/videos/video6.mp4', import.meta.url).href,
+      new URL('../assets/videos/video7.mp4', import.meta.url).href,
+      new URL('../assets/videos/video8.mp4', import.meta.url).href,
+      new URL('../assets/videos/video9.mp4', import.meta.url).href,
+      new URL('../assets/videos/video10.mp4', import.meta.url).href,
+    ],
+
+    // URL do vídeo de morte
+    videoMorte: new URL('../assets/videos/videomorte.mp4', import.meta.url).href,
+
+
+  };
+},
+
+
     
-  },
 
-  mounted() {
+ mounted() {
   const carregarFundo = (num) =>
     new Promise((resolve) => {
       const img = new Image();
@@ -64,49 +138,127 @@ fundoAtual: null,
       img.onload = () => resolve(img);
     });
 
-  Promise.all([1, 2, 3, 4, 5].map(carregarFundo)).then((imgs) => {
+  Promise.all([3, 1, 2, 4, 5].map(carregarFundo)).then((imgs) => {
     this.fundos = imgs;
     this.fundoAtual = imgs[0];
   });
-  
+
+  // Setup controles só uma vez
+  this.setupControles();
 },
 
-  methods: {
-    iniciarJogo() {
-      this.playerX = this.width / 2;
-      this.playerY = this.height / 2;
-      this.projectiles = [];
-      this.powerUps = [];
-      this.estado = "jogando";
-      this.tempo = 0;
-      this.pontos = 0;
-      this.nivel = 1;
-      this.fundoAtual = this.fundos[0];
 
-      this.velocidadeProjeteis = 3;
-      this.vidas = 3;
-      this.slowAtivo = false;
-      this.trocaFaseDelay = false;
-      this.boss = null;
-      this.bossDirecao = 1;
-      this.setupInimigos();
-      this.$nextTick(() => {
-        this.setupControles();
-        this.iniciarTimer();
-        this.iniciarLoop();
-      });
-    },
-    reiniciarJogo() {
-      this.iniciarJogo();
-    },
-    setupControles() {
-      window.addEventListener("keydown", (e) => {
-        this.keysPressed[e.key] = true;
-      });
-      window.addEventListener("keyup", (e) => {
-        this.keysPressed[e.key] = false;
-      });
-    },
+  methods: {
+ iniciarJogo() {
+  if (!this.historinhaJaVista) {
+    this.estado = "historinha";
+    this.videoIndex = 0;
+    this.historinhaJaVista = true; // marca que já viu
+  } else {
+    // já viu a historinha, vai direto para o jogo
+    this.estado = "jogando";
+    this.inicializarJogo();
+  }
+},
+
+
+  
+  avancarVideo() {
+  if (this.videoIndex < this.videosHistorinha.length - 1) {
+    // Avança para o próximo vídeo, continua na tela de vídeo
+    this.videoIndex++;
+  } else {
+    // Acabou os vídeos, começa o jogo
+    this.estado = "jogando";
+    this.playerX = this.width / 2;
+    this.playerY = this.height / 2;
+    this.projectiles = [];
+    this.powerUps = [];
+    this.tempo = 0;
+    this.pontos = 0;
+    this.nivel = 1;
+    this.fundoAtual = this.fundos[0];
+    this.velocidadeProjeteis = 3;
+    this.vidas = 3;
+    this.slowAtivo = false;
+    this.trocaFaseDelay = false;
+    this.boss = null;
+    this.bossDirecao = 1;
+    this.setupInimigos();
+    this.$nextTick(() => {
+      this.setupControles();
+      this.iniciarTimer();
+      this.iniciarLoop();
+    });
+  }
+},
+
+  inicializarJogo() {
+  cancelAnimationFrame(this.animationId);
+  clearInterval(this.projectileInterval);
+  clearInterval(this.tempoInterval);
+console.log("Velocidade dos projéteis:", this.velocidadeProjeteis);
+
+  this.playerX = this.width / 2;
+  this.playerY = this.height / 2;
+  this.projectiles = [];
+  this.powerUps = [];
+  this.tempo = 0;
+  this.pontos = 0;
+  this.nivel = 1;
+  this.fundoAtual = this.fundos[0];
+  this.velocidadeProjeteis = 3;
+  this.vidas = 3;
+  this.slowAtivo = false;
+  this.trocaFaseDelay = false;
+  this.boss = null;
+  this.bossDirecao = 1;
+  this.setupInimigos();
+  this.$nextTick(() => {
+    this.setupControles();
+    this.iniciarTimer();
+    this.iniciarLoop();
+  });
+},
+
+
+
+    mostrarVideoMorte() {
+  console.log("Mostrando vídeo de morte:", this.videoMorte);
+  this.estado = "gameover";
+  this.mostrandoVideoMorte = true;
+  // Opcional: parar animação e timers do jogo
+  cancelAnimationFrame(this.animationId);
+  clearInterval(this.projectileInterval);
+  clearInterval(this.tempoInterval);
+},
+
+
+ sairDoVideoMorte() {
+  this.mostrandoVideoMorte = false;
+  this.estado = "jogando";
+  this.velocidadeProjeteis = 3;  // reset explicito da velocidade
+  this.vidas = 3;                // reset vidas tambem
+  this.inicializarJogo();
+},
+
+
+ reiniciarJogo() {
+  this.mostrandoVideoMorte = false;
+  this.estado = "jogando";
+  this.velocidadeProjeteis = 3;  // reset explicito da velocidade
+  this.vidas = 3;                // reset vidas tambem
+  this.inicializarJogo();
+},
+
+  setupControles() {
+    window.addEventListener("keydown", (e) => {
+      this.keysPressed[e.key] = true;
+    });
+    window.addEventListener("keyup", (e) => {
+      this.keysPressed[e.key] = false;
+    });
+  },
     setupInimigos() {
       this.inimigos = [];
       const size = 40;
@@ -181,6 +333,7 @@ fundoAtual: null,
       clearInterval(this.tempoInterval);
       this.tempoInterval = setInterval(() => {
         if (this.estado !== "jogando") return;
+console.log("Velocidade dos projéteis:", this.velocidadeProjeteis);
 
         this.tempo++;
         if (this.tempo % 15 === 0 && this.nivel < 5 && !this.trocaFaseDelay) {
@@ -207,22 +360,34 @@ fundoAtual: null,
       const canvas = this.$refs.canvas;
       const ctx = canvas.getContext("2d");
 
-      const animate = () => {
-       
+     const animate = () => {
+ if (this.estado === "menu" || (this.estado === "gameover" && !this.mostrandoVideoMorte)) {
+  // Para o loop e timers somente no menu ou gameover sem vídeo ativo
+  cancelAnimationFrame(this.animationId);
+  clearInterval(this.projectileInterval);
+  clearInterval(this.tempoInterval);
+  return;
+}
 
-        if (this.estado !== "jogando") {
-          cancelAnimationFrame(this.animationId);
-          clearInterval(this.projectileInterval);
-          clearInterval(this.tempoInterval);
-          return;
-        }
-
-         if (this.fundoAtual) {
-  ctx.drawImage(this.fundoAtual, 0, 0, this.width, this.height);
-} else {
+// Se estiver mostrando o vídeo de morte, NÃO cancela o loop para garantir que o canvas continue desenhando fundo ou tela preta, se quiser.
+if (this.mostrandoVideoMorte) {
+  // Opcionalmente, desenhe uma tela preta ou alguma coisa, ou deixe o vídeo DOM aparecer sobre o canvas
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, this.width, this.height);
+
+  this.animationId = requestAnimationFrame(animate);
+  return;
 }
+
+
+
+  // Desenha o fundo
+  if (this.fundoAtual) {
+    ctx.drawImage(this.fundoAtual, 0, 0, this.width, this.height);
+  } else {
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, this.width, this.height);
+  }
 
         const speed = 5;
         if (this.keysPressed["ArrowUp"] || this.keysPressed["w"])
@@ -342,8 +507,11 @@ fundoAtual: null,
           if (distance < p.r + 10) {
             this.vidas--;
             if (this.vidas <= 0) {
-              this.estado = "gameover";
-            }
+  this.mostrarVideoMorte(); // chama o método para mostrar o vídeo e mudar o estado
+  return false; // para remover o projétil
+}
+
+
             return false;
           }
 
