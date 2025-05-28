@@ -1,345 +1,205 @@
 <template>
   <div>
-    <canvas
-      ref="canvas"
-      :width="width"
-      :height="height"
-      style="background: gray"
-    ></canvas>
+    <canvas ref="canvas" :width="width" :height="height" style="background: gray"></canvas>
 
-    <div v-if="estado === 'menu'" class="menu" style="display: flex; flex-direction: column; align-items: center; padding-bottom: 20px;">
-      <img src="../../public/LogoMenu.png" style="max-width: 500px" alt="LOGO" />
-      <button style="min-width: 250px;" @click="iniciarJogo">Iniciar Jogo</button>
+    <div v-if="estado === 'menu'" class="menu"
+      style="display: flex; flex-direction: column; align-items: center; padding-bottom: 20px;">
+      <img src="../assets/LogoMenu.png" style="max-width: 500px" alt="LOGO" />
+      <button style="min-width: 250px;" @click="cutscenes">Iniciar Jogo</button>
     </div>
 
     <!-- Vídeo da HISTÓRIA INICIAL -->
-    <div
-      v-if="estado === 'historinha'"
-      class="historinha"
-      @click="avancarVideo"
-      style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: black; display: flex; justify-content: center; align-items: center; z-index: 10;"
-    >
-      <video
-        ref="videoPlayer"
-        :src="videosHistorinha[videoIndex]"
-        autoplay
-        muted
-        playsinline
-        @ended="avancarVideo"
-        style="position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; cursor: pointer;"
-      ></video>
+    <div v-if="estado === 'historinha'" class="historinha" @click="avancarVideo"
+      style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: black; display: flex; justify-content: center; align-items: center; z-index: 10;">
+      <video ref="videoPlayer" :src="videosHistorinha[videoIndex]" autoplay muted playsinline @ended="avancarVideo"
+        style="position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; cursor: pointer;"></video>
       <div
-        style="position: absolute; bottom: 20px; color: white; font-size: 18px; width: 100%; text-align: center; user-select: none;"
-      >
-      
+        style="position: absolute; bottom: 20px; color: white; font-size: 18px; width: 100%; text-align: center; user-select: none;">
+
       </div>
     </div>
 
     <!-- Vídeo da MORTE (GAME OVER) -->
-    <div
-      v-if="estado === 'gameover' && mostrandoVideoMorte"
-      @click="sairDoVideoMorte"
-      style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: black; display: flex; justify-content: center; align-items: center; z-index: 20;"
-    >
-      <video
-        ref="videoMortePlayer"
-        :src="videoMorte"
-        autoplay
-        muted
-        playsinline
-        @ended="sairDoVideoMorte"
-        style="position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; cursor: pointer; z-index: 21;"
-      ></video>
-      <div
-        style="position: absolute; bottom: 20px; color: white; font-size: 18px; width: 100%; text-align: center; user-select: none; z-index: 22;"
-      >
-        
-      </div>
-    </div>
+    <div v-if="estado === 'gameover'" @click="reiniciarJogo"
+      style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: black; display: flex; justify-content: center; align-items: center; z-index: 20;">
 
-    <div v-if="estado === 'gameover' && !mostrandoVideoMorte" class="gameover" style="text-align: center; margin-top: 20px;">
-      <h1 style="color: white">Game Over</h1>
-      <button @click="reiniciarJogo">Reiniciar Jogo</button>
+      <video ref="videoMortePlayer" :src="videoMorte" autoplay muted playsinline @ended="reiniciarJogo"
+        style="position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; cursor: pointer; z-index: 21;">
+      </video>
     </div>
-
   </div>
 </template>
 
-
 <script>
-
-
-
+import { carregarSprites } from '../utils/carregarSprites.js';
+import { carregarFundos } from '../utils/carregarFundos.js';
+import { drawImage } from '../utils/drawImage.js';
+import { zonasPorFase } from '../utils/zonasPorFase.js';
+import { atualizarZonasDeColisao, verificarColisaoDeProjetil } from '../utils/colisao.js';
+import { verificarTeclaPressionada } from '../utils/verificarTeclaPressionada.js';
+import { gerarInimigosPorFase } from '../utils/gerarInimigosPorFase.js';
+import { gerarBoss } from '../utils/gerarBoss.js';
+import { atirarProjeteis } from '../utils/atirarProjeteis.js';
 
 export default {
   name: "GameCanvas",
- data() {
-  return {
-    historinhaJaVista: false, 
-    fundos: [],
-    fundoAtual: null,
-    width: window.innerWidth,
-    height: window.innerHeight,
-    playerX: window.innerWidth / 2,
-    playerY: window.innerHeight / 2,
-    projectiles: [],
-    powerUps: [],
-    inimigos: [],
-    animationId: null,
-    projectileInterval: null,
-    tempoInterval: null,
-    keysPressed: {},
-    tempo: 0,
-    pontos: 0,
-    nivel: 1,
-    velocidadeProjeteis: 3,
-    vidas: 3,
-    slowAtivo: false,
-    slowTimeoutId: null,
-    trocaFaseDelay: false,
-    boss: null,
-    bossDirecao: 1,
+  data() {
+    return {
+      zonasDeColisao: [],
+      fundos: [],
+      fundoAtual: null,
+      width: window.innerWidth,
+      height: window.innerHeight,
+      imagens: [],
+      projectiles: [],
+      powerUps: [],
+      inimigos: [],
+      estado: "menu",
+      animationId: null,
+      projectileInterval: null,
+      tempoInterval: null,
+      keysPressed: {},
+      tempo: 0,
+      pontos: 0,
+      nivel: 1,
+      velocidadeProjeteis: 3,
+      vidas: 3,
+      slowAtivo: false,
+      slowTimeoutId: null,
+      trocaFaseDelay: false,
+      boss: null, // dados do boss
+      bossDirecao: 1, // 1 para descer, -1 para subir
+      player: {
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2,
+      },
 
-    // Estados e vídeos
-    estado: "menu",  // só uma vez!
-    videoIndex: 0,
-    videoMorteIndex: 0,
-    mostrandoVideoMorte: false,
+      // Estados e vídeos
+      videoIndex: 0,
+      videoMorteIndex: 0,
+      mostrandoVideoMorte: false,
 
-    videosHistorinha: [
-      new URL('../assets/videos/video1.mp4', import.meta.url).href,
-      new URL('../assets/videos/video2.mp4', import.meta.url).href,
-      new URL('../assets/videos/video3.mp4', import.meta.url).href,
-      new URL('../assets/videos/video4.mp4', import.meta.url).href,
-      new URL('../assets/videos/video5.mp4', import.meta.url).href,
-      new URL('../assets/videos/video6.mp4', import.meta.url).href,
-      new URL('../assets/videos/video7.mp4', import.meta.url).href,
-      new URL('../assets/videos/video8.mp4', import.meta.url).href,
-      new URL('../assets/videos/video9.mp4', import.meta.url).href,
-      new URL('../assets/videos/video10.mp4', import.meta.url).href,
-    ],
+      videosHistorinha: [
+        new URL('../assets/videos/video1.mp4', import.meta.url).href,
+        new URL('../assets/videos/video2.mp4', import.meta.url).href,
+        new URL('../assets/videos/video3.mp4', import.meta.url).href,
+        new URL('../assets/videos/video4.mp4', import.meta.url).href,
+        new URL('../assets/videos/video5.mp4', import.meta.url).href,
+        new URL('../assets/videos/video6.mp4', import.meta.url).href,
+        new URL('../assets/videos/video7.mp4', import.meta.url).href,
+        new URL('../assets/videos/video8.mp4', import.meta.url).href,
+        new URL('../assets/videos/video9.mp4', import.meta.url).href,
+        new URL('../assets/videos/video10.mp4', import.meta.url).href,
+      ],
 
-    // URL do vídeo de morte
-    videoMorte: new URL('../assets/videos/videomorte.mp4', import.meta.url).href,
+      // URL do vídeo de morte
+      videoMorte: new URL('../assets/videos/videomorte.mp4', import.meta.url).href,
+    };
+  },
 
+  mounted() {
+    this.imagens = carregarSprites();
 
-  };
-},
-
-
-    
-
- mounted() {
-  const carregarFundo = (num) =>
-    new Promise((resolve) => {
-      const img = new Image();
-      img.src = new URL(`../assets/background/bg${num}.png`, import.meta.url).href;
-
-      img.onload = () => resolve(img);
+    carregarFundos().then((imgs) => {
+      this.fundos = imgs;
+      this.fundoAtual = imgs[0];
     });
 
-  Promise.all([3, 1, 2, 4, 5].map(carregarFundo)).then((imgs) => {
-    this.fundos = imgs;
-    this.fundoAtual = imgs[0];
-  });
-
-  // Setup controles só uma vez
-  this.setupControles();
-},
-
+  },
 
   methods: {
- iniciarJogo() {
-  if (!this.historinhaJaVista) {
-    this.estado = "historinha";
-    this.videoIndex = 0;
-    this.historinhaJaVista = true; // marca que já viu
-  } else {
-    // já viu a historinha, vai direto para o jogo
-    this.estado = "jogando";
-    this.inicializarJogo();
-  }
-},
+    cutscenes() {
+      if (!this.historinhaJaVista) {
+        this.estado = "historinha";
+        this.videoIndex = 0;
+        this.historinhaJaVista = true;
+      } else {
+        this.iniciarGameplay();
+      }
+    },
 
+    avancarVideo() {
+      if (this.videoIndex < this.videosHistorinha.length - 1) {
+        this.videoIndex++;
+      } else {
+        this.iniciarGameplay();
+      }
+    },
 
-  
-  avancarVideo() {
-  if (this.videoIndex < this.videosHistorinha.length - 1) {
-    // Avança para o próximo vídeo, continua na tela de vídeo
-    this.videoIndex++;
-  } else {
-    // Acabou os vídeos, começa o jogo
-    this.estado = "jogando";
-    this.playerX = this.width / 2;
-    this.playerY = this.height / 2;
-    this.projectiles = [];
-    this.powerUps = [];
-    this.tempo = 0;
-    this.pontos = 0;
-    this.nivel = 1;
-    this.fundoAtual = this.fundos[0];
-    this.velocidadeProjeteis = 3;
-    this.vidas = 3;
-    this.slowAtivo = false;
-    this.trocaFaseDelay = false;
-    this.boss = null;
-    this.bossDirecao = 1;
-    this.setupInimigos();
-    this.$nextTick(() => {
-      this.setupControles();
-      this.iniciarTimer();
-      this.iniciarLoop();
-    });
-  }
-},
+    iniciarGameplay() {
+      this.iniciarJogo();
+    },
 
-  inicializarJogo() {
-  cancelAnimationFrame(this.animationId);
-  clearInterval(this.projectileInterval);
-  clearInterval(this.tempoInterval);
-console.log("Velocidade dos projéteis:", this.velocidadeProjeteis);
+    iniciarJogo() {
+      this.player.x = this.width / 2;
+      this.player.y = this.height / 2;
+      this.projectiles = [];
+      this.powerUps = [];
+      this.estado = "jogando";
+      this.tempo = 0;
+      this.pontos = 0;
+      this.nivel = 1;
+      this.fundoAtual = this.fundos[0];
+      this.zonasDeColisao = atualizarZonasDeColisao(this.nivel, zonasPorFase());
+      this.velocidadeProjeteis = 3;
+      this.vidas = 3;
+      this.slowAtivo = false;
+      this.trocaFaseDelay = false;
+      this.boss = null;
+      this.bossDirecao = 1;
+      this.setupInimigos();
+      this.$nextTick(() => {
+        this.setupControles();
+        this.iniciarTimer();
+        this.iniciarLoop();
+      });
+    },
 
-  this.playerX = this.width / 2;
-  this.playerY = this.height / 2;
-  this.projectiles = [];
-  this.powerUps = [];
-  this.tempo = 0;
-  this.pontos = 0;
-  this.nivel = 1;
-  this.fundoAtual = this.fundos[0];
-  this.velocidadeProjeteis = 3;
-  this.vidas = 3;
-  this.slowAtivo = false;
-  this.trocaFaseDelay = false;
-  this.boss = null;
-  this.bossDirecao = 1;
-  this.setupInimigos();
-  this.$nextTick(() => {
-    this.setupControles();
-    this.iniciarTimer();
-    this.iniciarLoop();
-  });
-},
+    reiniciarJogo() {
+      // Aqui você reseta o jogo: vida, pontos, estado, etc.
+      this.estado = 'jogando';
+      // Se quiser resetar o vídeo manualmente:
+      const video = this.$refs.videoMortePlayer;
+      if (video) {
+        video.pause();
+        video.currentTime = 0;
+      }
+      this.iniciarJogo();
+    },
 
+    setupControles() {
+      window.addEventListener("keydown", (e) => {
+        this.keysPressed[e.key] = true;
+      });
+      window.addEventListener("keyup", (e) => {
+        this.keysPressed[e.key] = false;
+      });
+    },
 
-
-    mostrarVideoMorte() {
-  console.log("Mostrando vídeo de morte:", this.videoMorte);
-  this.estado = "gameover";
-  this.mostrandoVideoMorte = true;
-  // Opcional: parar animação e timers do jogo
-  cancelAnimationFrame(this.animationId);
-  clearInterval(this.projectileInterval);
-  clearInterval(this.tempoInterval);
-},
-
-
- sairDoVideoMorte() {
-  this.mostrandoVideoMorte = false;
-  this.estado = "jogando";
-  this.velocidadeProjeteis = 3;  // reset explicito da velocidade
-  this.vidas = 3;                // reset vidas tambem
-  this.inicializarJogo();
-},
-
-
- reiniciarJogo() {
-  this.mostrandoVideoMorte = false;
-  this.estado = "jogando";
-  this.velocidadeProjeteis = 3;  // reset explicito da velocidade
-  this.vidas = 3;                // reset vidas tambem
-  this.inicializarJogo();
-},
-
-  setupControles() {
-    window.addEventListener("keydown", (e) => {
-      this.keysPressed[e.key] = true;
-    });
-    window.addEventListener("keyup", (e) => {
-      this.keysPressed[e.key] = false;
-    });
-  },
     setupInimigos() {
-      this.inimigos = [];
       const size = 40;
       const padding = 50;
 
-      if (this.nivel < 5) {
-        // inimigos normais só nas fases 1-4
-        // Topo - 2 inimigos
-        this.inimigos.push({
-          x: this.width * 0.25,
-          y: padding,
-          size,
-          lastShot: 0,
-          shootInterval: Math.max(400, 1500 - this.nivel * 200),
-        });
-        this.inimigos.push({
-          x: this.width * 0.75,
-          y: padding,
-          size,
-          lastShot: 0,
-          shootInterval: Math.max(400, 1500 - this.nivel * 200),
-        });
-
-        // Base - 2 inimigos
-        this.inimigos.push({
-          x: this.width * 0.25,
-          y: this.height - padding,
-          size,
-          lastShot: 0,
-          shootInterval: Math.max(400, 1500 - this.nivel * 200),
-        });
-        this.inimigos.push({
-          x: this.width * 0.75,
-          y: this.height - padding,
-          size,
-          lastShot: 0,
-          shootInterval: Math.max(400, 1500 - this.nivel * 200),
-        });
-
-        // Esquerda - 1 inimigo
-        this.inimigos.push({
-          x: padding,
-          y: this.height / 2,
-          size,
-          lastShot: 0,
-          shootInterval: Math.max(400, 1500 - this.nivel * 200),
-        });
-
-        // Direita - 1 inimigo
-        this.inimigos.push({
-          x: this.width - padding,
-          y: this.height / 2,
-          size,
-          lastShot: 0,
-          shootInterval: Math.max(400, 1500 - this.nivel * 200),
-        });
+      if (this.nivel === 5) {
+        this.inimigos = [];
+        this.boss = gerarBoss(this.width, this.height);
       } else {
-        // fase 5 - cria o boss
-        const bossSize = 80;
-        this.boss = {
-          x: this.width / 2,
-          y: this.height / 2,
-          size: bossSize,
-          lastShot: 0,
-          shootInterval: 400, // mais rápido
-          vida: 30, // vida do boss
-          velocidade: 2,
-        };
+        this.boss = null;
+        this.inimigos = gerarInimigosPorFase(this.nivel, this.width, this.height, size, padding);
       }
     },
+
     iniciarTimer() {
       clearInterval(this.tempoInterval);
       this.tempoInterval = setInterval(() => {
         if (this.estado !== "jogando") return;
-console.log("Velocidade dos projéteis:", this.velocidadeProjeteis);
 
         this.tempo++;
         if (this.tempo % 15 === 0 && this.nivel < 5 && !this.trocaFaseDelay) {
           this.trocaFaseDelay = true;
           setTimeout(() => {
             this.nivel++;
+            this.zonasDeColisao = atualizarZonasDeColisao(this.nivel, zonasPorFase());
             this.fundoAtual = this.fundos[this.nivel - 1];
             this.pontos += 25; // Pontos ao passar de fase
             this.velocidadeProjeteis += 1;
@@ -360,215 +220,6 @@ console.log("Velocidade dos projéteis:", this.velocidadeProjeteis);
       const canvas = this.$refs.canvas;
       const ctx = canvas.getContext("2d");
 
-     const animate = () => {
- if (this.estado === "menu" || (this.estado === "gameover" && !this.mostrandoVideoMorte)) {
-  // Para o loop e timers somente no menu ou gameover sem vídeo ativo
-  cancelAnimationFrame(this.animationId);
-  clearInterval(this.projectileInterval);
-  clearInterval(this.tempoInterval);
-  return;
-}
-
-// Se estiver mostrando o vídeo de morte, NÃO cancela o loop para garantir que o canvas continue desenhando fundo ou tela preta, se quiser.
-if (this.mostrandoVideoMorte) {
-  // Opcionalmente, desenhe uma tela preta ou alguma coisa, ou deixe o vídeo DOM aparecer sobre o canvas
-  ctx.fillStyle = "black";
-  ctx.fillRect(0, 0, this.width, this.height);
-
-  this.animationId = requestAnimationFrame(animate);
-  return;
-}
-
-
-
-  // Desenha o fundo
-  if (this.fundoAtual) {
-    ctx.drawImage(this.fundoAtual, 0, 0, this.width, this.height);
-  } else {
-    ctx.fillStyle = "black";
-    ctx.fillRect(0, 0, this.width, this.height);
-  }
-
-        const speed = 5;
-        if (this.keysPressed["ArrowUp"] || this.keysPressed["w"])
-          this.playerY -= speed;
-        if (this.keysPressed["ArrowDown"] || this.keysPressed["s"])
-          this.playerY += speed;
-        if (this.keysPressed["ArrowLeft"] || this.keysPressed["a"])
-          this.playerX -= speed;
-        if (this.keysPressed["ArrowRight"] || this.keysPressed["d"])
-          this.playerX += speed;
-
-        this.playerX = Math.max(10, Math.min(this.width - 10, this.playerX));
-        this.playerY = Math.max(10, Math.min(this.height - 10, this.playerY));
-
-        
-
-        // HUD (sobreposto ao jogo)
-        ctx.fillStyle = "white";
-        ctx.font = "20px Arial";
-        ctx.fillText(`Tempo: ${this.tempo}s`, 20, 30);
-        ctx.fillText(`Pontos: ${this.pontos}`, 20, 60);
-        ctx.fillText(`Fase: ${this.nivel}`, 20, 90);
-        ctx.fillText(`Vidas: ${this.vidas}`, 20, 120);
-
-        // Player
-        ctx.beginPath();
-        ctx.arc(this.playerX, this.playerY, 10, 0, Math.PI * 2);
-        ctx.fillStyle = "cyan";
-        ctx.fill();
-        ctx.closePath();
-
-        if (this.nivel < 5) {
-          // Inimigos normais
-          this.inimigos.forEach((inimigo) => {
-            ctx.fillStyle = "magenta";
-            ctx.fillRect(
-              inimigo.x - inimigo.size / 2,
-              inimigo.y - inimigo.size / 2,
-              inimigo.size,
-              inimigo.size
-            );
-
-            // Atirar projeteis com intervalo
-            const now = Date.now();
-            if (now - inimigo.lastShot > inimigo.shootInterval) {
-              inimigo.lastShot = now;
-              // Cria projétil em direção ao player
-              const dx = this.playerX - inimigo.x;
-              const dy = this.playerY - inimigo.y;
-              const length = Math.hypot(dx, dy);
-
-              const speedProj = this.slowAtivo
-                ? this.velocidadeProjeteis * 0.5
-                : this.velocidadeProjeteis;
-
-              this.projectiles.push({
-                x: inimigo.x,
-                y: inimigo.y,
-                r: 6,
-                xVel: (dx / length) * speedProj,
-                yVel: (dy / length) * speedProj,
-              });
-            }
-          });
-        } else {
-          // Fase 5 - boss
-          // Movimentação vertical do boss
-          if (this.boss) {
-            this.boss.y += this.bossDirecao * this.boss.velocidade;
-            if (
-              this.boss.y + this.boss.size / 2 > this.height - 50 ||
-              this.boss.y - this.boss.size / 2 < 50
-            ) {
-              this.bossDirecao *= -1;
-            }
-
-            ctx.fillStyle = "purple";
-            ctx.fillRect(
-              this.boss.x - this.boss.size / 2,
-              this.boss.y - this.boss.size / 2,
-              this.boss.size,
-              this.boss.size
-            );
-
-            // Boss atira mais rápido e projéteis mais rápidos
-            const now = Date.now();
-            if (now - this.boss.lastShot > this.boss.shootInterval) {
-              this.boss.lastShot = now;
-              const dx = this.playerX - this.boss.x;
-              const dy = this.playerY - this.boss.y;
-              const length = Math.hypot(dx, dy);
-
-              const bossSpeed = this.slowAtivo
-                ? this.velocidadeProjeteis * 0.75
-                : this.velocidadeProjeteis * 2;
-
-              this.projectiles.push({
-                x: this.boss.x,
-                y: this.boss.y,
-                r: 10,
-                xVel: (dx / length) * bossSpeed,
-                yVel: (dy / length) * bossSpeed,
-              });
-            }
-          }
-        }
-
-        // Projéteis
-        this.projectiles = this.projectiles.filter((p) => {
-          p.x += p.xVel;
-          p.y += p.yVel;
-
-          const dx = p.x - this.playerX;
-          const dy = p.y - this.playerY;
-          const distance = Math.hypot(dx, dy);
-
-          if (distance < p.r + 10) {
-            this.vidas--;
-            if (this.vidas <= 0) {
-  this.mostrarVideoMorte(); // chama o método para mostrar o vídeo e mudar o estado
-  return false; // para remover o projétil
-}
-
-
-            return false;
-          }
-
-          let cor = "red";
-          if (this.nivel === 2) cor = "lime";
-          else if (this.nivel === 3) cor = "blue";
-          else if (this.nivel === 4) cor = "yellow";
-          else if (this.nivel === 5) cor = "purple";
-
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-          ctx.fillStyle = cor;
-          ctx.fill();
-          ctx.closePath();
-
-          return (
-            p.x >= -50 &&
-            p.y >= -50 &&
-            p.x <= this.width + 50 &&
-            p.y <= this.height + 50
-          );
-        });
-
-        // Power-ups
-        this.powerUps = this.powerUps.filter((pu) => {
-          pu.y += 2; // Velocidade do power-up
-
-          // Verificando colisão com o player
-          const dx = pu.x - this.playerX;
-          const dy = pu.y - this.playerY;
-          const distance = Math.hypot(dx, dy);
-
-          if (distance < pu.r + 10) {
-            if (pu.type === "life") {
-              this.vidas++; // Adiciona vida
-            } else if (pu.type === "slow") {
-              if (this.slowTimeoutId) clearTimeout(this.slowTimeoutId);
-              this.slowAtivo = true;
-              this.slowTimeoutId = setTimeout(() => {
-                this.slowAtivo = false;
-              }, 3000); // 3 segundos de slow
-            }
-            return false; // Remove o power-up após pegar
-          }
-
-          ctx.beginPath();
-          ctx.arc(pu.x, pu.y, pu.r, 0, Math.PI * 2);
-          ctx.fillStyle = pu.type === "life" ? "green" : "yellow"; // Verde para vida, amarelo para slow
-          ctx.fill();
-          ctx.closePath();
-
-          return pu.y <= this.height + 50; // Só mantém os power-ups dentro da tela
-        });
-
-        this.animationId = requestAnimationFrame(animate);
-      };
-
       // Criar power-ups aleatórios (life e slow)
       this.projectileInterval = setInterval(() => {
         if (this.estado !== "jogando") return;
@@ -586,9 +237,187 @@ if (this.mostrandoVideoMorte) {
         }
       }, 300);
 
-      animate();
+      this.animate(ctx);
     },
-  },
+
+    animate(ctx) {
+      if (this.estado !== "jogando") {
+        cancelAnimationFrame(this.animationId);
+        clearInterval(this.projectileInterval);
+        clearInterval(this.tempoInterval);
+        return;
+      }
+
+      if (this.fundoAtual) {
+        ctx.drawImage(this.fundoAtual, 0, 0, this.width, this.height);
+      } else {
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, this.width, this.height);
+      }
+
+      const speed = 5;
+      const nextPositions = {
+        up: { x: this.player.x, y: this.player.y - speed },
+        down: { x: this.player.x, y: this.player.y + speed },
+        left: { x: this.player.x - speed, y: this.player.y },
+        right: { x: this.player.x + speed, y: this.player.y },
+      };
+
+      verificarTeclaPressionada(
+        this.keysPressed,
+        this.zonasDeColisao,
+        nextPositions,
+        this.player,
+        speed,
+      );
+
+      const metadePlayer = 20; // metade do tamanho do player (40/2)
+
+      this.player.x = Math.max(metadePlayer, Math.min(this.width - metadePlayer, this.player.x));
+      this.player.y = Math.max(metadePlayer, Math.min(this.height - metadePlayer, this.player.y));
+
+      // HUD (sobreposto ao jogo)
+      ctx.fillStyle = "white";
+      ctx.font = "20px Arial";
+      ctx.fillText(`Tempo: ${this.tempo}s`, 20, 30);
+      ctx.fillText(`Pontos: ${this.pontos}`, 20, 60);
+      ctx.fillText(`Fase: ${this.nivel}`, 20, 90);
+      ctx.fillText(`Vidas: ${this.vidas}`, 20, 120);
+
+      //DESENHO DAS ZONAS DE COLISAO
+      // ctx.fillStyle = "rgba(255, 0, 0, 0.3)";
+      // this.zonasDeColisao.forEach((zona) => {
+      //   ctx.fillRect(zona.x, zona.y, zona.width, zona.height);
+      // });
+
+      // Player
+      const playerSize = 40;
+      drawImage(ctx, this.imagens.player, this.player.x, this.player.y, playerSize, playerSize);
+
+      if (this.nivel < 5) {
+        // Inimigos normais
+        this.processarInimigos(ctx);
+      } else {
+        // Fase 5 - boss
+        this.processarBoss(ctx);
+      }
+
+      // Projéteis
+      this.processarProjetiles(ctx);
+
+      // Power-ups
+      this.processarPowerUps(ctx);
+
+      this.animationId = requestAnimationFrame(() => this.animate(ctx));
+    },
+
+    processarBoss(ctx) {
+      this.moverBoss();
+      if (!this.boss) return;
+      drawImage(ctx, this.imagens.boss, this.boss.x, this.boss.y, this.boss.size, this.boss.size, 0);
+      atirarProjeteis({
+        atirador: this.boss,
+        player: this.player,
+        slowAtivo: this.slowAtivo,
+        velocidadeProjeteis: this.velocidadeProjeteis,
+        imagens: this.imagens,
+        projectiles: this.projectiles
+      }, { velocidadeMultiplicador: 2, width: 32, height: 32 });
+    },
+
+    processarInimigos(ctx) {
+      this.inimigos.forEach((inimigo, index) => {
+        const imgSize = inimigo.size;
+
+        // Pega uma sprite de inimigo de forma cíclica (1 até 5)
+        const spriteIndex = (index % 5) + 1;
+        const img = this.imagens['inimigo' + spriteIndex];
+
+        drawImage(ctx, img, inimigo.x, inimigo.y, imgSize, imgSize, 0);
+
+        atirarProjeteis({
+          atirador: inimigo,
+          player: this.player,
+          slowAtivo: this.slowAtivo,
+          velocidadeProjeteis: this.velocidadeProjeteis,
+          imagens: this.imagens,
+          projectiles: this.projectiles
+        }, { velocidadeMultiplicador: 1, width: 52, height: 52 });
+      });
+    },
+
+    processarProjetiles(ctx) {
+      this.projectiles = this.projectiles.filter((p) => {
+        p.x += p.xVel;
+        p.y += p.yVel;
+
+        if (verificarColisaoDeProjetil(p.x, p.y, p.r, this.player.x, this.player.y, 10)) {
+          this.vidas--;
+          if (this.vidas <= 0) {
+            this.estado = "gameover";
+            this.mostrandoVideoMorte = true;
+          }
+          return false;
+        }
+
+        // Atualiza a rotação do projétil
+        p.rotation += 0.05;
+
+        // Desenha o projétil rotacionado
+        drawImage(ctx, p.img, p.x, p.y, p.width, p.height, p.rotation);
+
+        return (
+          p.x >= -50 &&
+          p.y >= -50 &&
+          p.x <= this.width + 50 &&
+          p.y <= this.height + 50
+        );
+      });
+    },
+
+    processarPowerUps(ctx) {
+      this.powerUps = this.powerUps.filter((pu) => {
+        pu.y += 2; // Velocidade do power-up
+
+        if (verificarColisaoDeProjetil(pu.x, pu.y, pu.r, this.player.x, this.player.y, 10)) {
+          this.coletarPowerUp(pu);
+          return false; // Remove o power-up após pegar
+        }
+
+        const img = pu.type === "life" ? this.imagens.vida : this.imagens.slow;
+        const size = 30; // tamanho da imagem do power-up
+        drawImage(ctx, img, pu.x, pu.y, size, size, pu.rotation);
+
+        return pu.y <= this.height + 50; // Mantém power-up dentro da tela
+      });
+    },
+
+    coletarPowerUp(pu) {
+      if (pu.type === "life") {
+        this.vidas++;
+      } else if (pu.type === "slow") {
+        if (this.slowTimeoutId) clearTimeout(this.slowTimeoutId);
+        this.slowAtivo = true;
+        this.slowTimeoutId = setTimeout(() => {
+          this.slowAtivo = false;
+        }, 3000);
+      }
+    },
+
+    moverBoss() {
+      if (!this.boss) return;
+
+      this.boss.y += this.bossDirecao * this.boss.velocidade;
+
+      if (
+        this.boss.y + this.boss.size / 2 > this.height - 50 ||
+        this.boss.y - this.boss.size / 2 < 50
+      ) {
+        this.bossDirecao *= -1;
+      }
+    },
+
+  }
 };
 </script>
 
