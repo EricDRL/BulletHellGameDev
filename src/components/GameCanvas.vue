@@ -1,5 +1,15 @@
 <template>
   <div class="game-container">
+    <video
+      v-if="showPhase5Background"
+      :src="videoFundoFase5"
+      autoplay
+      loop
+      muted
+      playsinline
+      class="background-video">
+    </video>
+
     <canvas ref="canvas" :width="width" :height="height"></canvas>
 
     <transition name="fade">
@@ -40,6 +50,16 @@
         <video ref="videoPlayerFase" :src="videosDeTransicao[currentCutsceneFaseIndex]" autoplay muted playsinline @ended="avancarVideoCutsceneFase"
           class="video-player"></video>
         <button class="skip-intro-button" @click.stop="pularCutsceneFase">
+          Pular História
+        </button>
+      </div>
+    </transition>
+
+    <transition name="fade">
+      <div v-if="estado === 'cutsceneFase3'" class="historinha" @click="avancarVideoCutsceneFase3">
+        <video ref="videoPlayerFase3" :src="videosFase3[currentCutsceneFase3Index]" autoplay muted playsinline @ended="avancarVideoCutsceneFase3"
+          class="video-player"></video>
+        <button class="skip-intro-button" @click.stop="pularCutsceneFase3">
           Pular História
         </button>
       </div>
@@ -117,6 +137,9 @@
             </div>
             <div class="in-game-menu-buttons">
               <button class="menu-button in-game-button" @click="voltarAoMenuPrincipal">Voltar ao Menu Principal</button>
+              <button v-if="nivel < 5" class="menu-button in-game-button" @click="pularFase">
+                Pular Fase
+              </button>
               <button class="menu-button in-game-button" @click="toggleGameMenu">Continuar Jogo</button>
             </div>
           </div>
@@ -135,7 +158,7 @@ import { atualizarZonasDeColisao, verificarColisaoDeProjetil } from '../utils/co
 import { verificarTeclaPressionada } from '../utils/verificarTeclaPressionada.js';
 import { gerarInimigosPorFase } from '../utils/gerarInimigosPorFase.js';
 import { gerarBoss } from '../utils/gerarBoss.js';
-import { atirarProjeteis } from '../utils/atirarProjeteis.js'; // CORREÇÃO AQUI
+import { atirarProjeteis } from '../utils/atirarProjeteis.js';
 
 export default {
   name: "GameCanvas",
@@ -150,26 +173,23 @@ export default {
       projectiles: [],
       powerUps: [],
       inimigos: [],
-      estado: "menu", // "menu", "historinha", "jogando", "morte", "opcoes", "creditos", "cutsceneFase", "countdown"
+      estado: "menu", // "menu", "historinha", "jogando", "morte", "opcoes", "creditos", "cutsceneFase", "cutsceneFase3", "countdown"
       animationId: null,
-
-      projectileInterval: null, // Para os power-ups
-      projectileSpawnInterval: null, // NOVO: Para os projéteis dos inimigos/boss
+      projectileInterval: null,
+      projectileSpawnInterval: null,
       tempoInterval: null,
       keysPressed: {},
-
       tempo: 0,
       pontos: 0,
-      pontosSalvos: 0, // Para guardar a pontuação ao final da fase
-      nivel: 1, // Representa o nível atual da gameplay (pode ser usado para regras de dificuldade/desenho)
-      velocidadeProjeteis: 3, // Esta será a velocidade base ou inicial
-      // NOVO: Velocidade dos projéteis por fase
+      pontosSalvos: 0,
+      nivel: 1,
+      velocidadeProjeteis: 3,
       velocidadeProjeteisPorFase: {
-        1: 3, // Velocidade inicial para a Fase 1
-        2: 4, // Velocidade para a Fase 2 (3 + 1)
-        3: 5, // Velocidade para a Fase 3 (4 + 1)
-        4: 6, // Velocidade para a Fase 4 (5 + 1)
-        5: 7, // Velocidade para a Fase 5 (6 + 1)
+        1: 3,
+        2: 4,
+        3: 5,
+        4: 6,
+        5: 7,
       },
       vidas: 3,
       slowAtivo: false,
@@ -177,20 +197,21 @@ export default {
       trocaFaseDelay: false,
       boss: null,
       bossDirecao: 1,
+      bossDirecaoX: 1, // Direção horizontal do Boss
+      bossState: 'attacking', // "attacking" ou "sleeping"
+      bossTimers: { // Agrupa os timers do boss
+        attack: null,
+        rest: null,
+      },
       player: {
         x: window.innerWidth / 2,
         y: window.innerHeight / 2,
-        size: 120, // DOBRO DO TAMANHO ORIGINAL (60 * 2)
-        hitboxRadius: 40 // DOBRO DO TAMANHO ORIGINAL (20 * 2) - Ajuste para colisão
+        size: 120,
+        hitboxRadius: 40
       },
-
-      projectileSize: 48, // AJUSTADO: um pouco menor (era 64)
-
-      // Variáveis para a introdução inicial
+      projectileSize: 48,
       videoIndex: 0,
       historinhaJaVista: false,
-
-      // Variáveis para as cutscenes de transição de fase
       currentCutsceneFaseIndex: 0,
       nextFaseAfterCutscene: 0,
       videosDeTransicao: [
@@ -198,9 +219,22 @@ export default {
         new URL('../assets/videos/video12.mp4', import.meta.url).href,
         new URL('../assets/videos/video13.mp4', import.meta.url).href,
         new URL('../assets/videos/video14.mp4', import.meta.url).href,
+        new URL('../assets/videos/video19.mp4', import.meta.url).href,
+        new URL('../assets/videos/video20.mp4', import.meta.url).href,
+        new URL('../assets/videos/video21.mp4', import.meta.url).href,
+        new URL('../assets/videos/video22.mp4', import.meta.url).href,
+        new URL('../assets/videos/video23.mp4', import.meta.url).href,
+        new URL('../assets/videos/video24.mp4', import.meta.url).href,
+        new URL('../assets/videos/video25.mp4', import.meta.url).href,
+        new URL('../assets/videos/video26.mp4', import.meta.url).href,
+        new URL('../assets/videos/video27.mp4', import.meta.url).href,
+        new URL('../assets/videos/video28.mp4', import.meta.url).href,
+        new URL('../assets/videos/video29.mp4', import.meta.url).href,
       ],
       cutsceneFaseMap: {
-        2: { startIndex: 0, endIndex: 3 }, // Transição para a Fase 2 usa video11, video12, video13, video14
+        2: { startIndex: 0, endIndex: 3 },
+        4: { startIndex: 4, endIndex: 7 },
+        5: { startIndex: 8, endIndex: 14 },
       },
       cutscenesFaseJaVistas: {
         2: false,
@@ -208,14 +242,19 @@ export default {
         4: false,
         5: false,
       },
-
+      currentCutsceneFase3Index: 0,
+      videosFase3: [
+        new URL('../assets/videos/video15.mp4', import.meta.url).href,
+        new URL('../assets/videos/video16.mp4', import.meta.url).href,
+        new URL('../assets/videos/video17.mp4', import.meta.url).href,
+        new URL('../assets/videos/video18.mp4', import.meta.url).href,
+      ],
+      cutsceneFase3JaVista: false,
       videoMorte: new URL('../assets/videos/videomorte.mp4', import.meta.url).href,
-
+      videoFundoFase5: new URL('../assets/videos/fundo_fase5.mp4', import.meta.url).href, // Adicione o caminho real do seu vídeo
       volumeMusica: 50,
       inGameMenuOpen: false,
-
       bgMusic: null,
-
       videosHistorinha: [
         new URL('../assets/videos/video1.mp4', import.meta.url).href,
         new URL('../assets/videos/video2.mp4', import.meta.url).href,
@@ -228,14 +267,17 @@ export default {
         new URL('../assets/videos/video9.mp4', import.meta.url).href,
         new URL('../assets/videos/video10.mp4', import.meta.url).href,
       ],
-
-      // Variáveis para a contagem regressiva
       countdownValue: 3,
       countdownIntervalId: null,
-
-      // A fase atual do jogo - importante para manter a fase após a morte
       faseAtualDoJogo: 1,
     };
+  },
+
+  computed: {
+    showPhase5Background() {
+      // Esta propriedade computada controla a visibilidade do vídeo de fundo
+      return this.faseAtualDoJogo === 5 && (this.estado === 'jogando' || this.estado === 'countdown');
+    }
   },
 
   mounted() {
@@ -246,11 +288,22 @@ export default {
         this.fundoAtual = fundos[0];
         console.log("Todas as imagens (sprites e fundos) carregadas com sucesso!");
 
+        // Adiciona a imagem do boss dormindo
+        this.imagens.boss_sleeping = new Image();
+        this.imagens.boss_sleeping.src = new URL('../assets/sprites/cartman2.png', import.meta.url).href;
+        this.imagens.boss_sleeping.onload = () => {
+            console.log("Imagem do boss_sleeping carregada!");
+        };
+        this.imagens.boss_sleeping.onerror = (e) => {
+            console.error("Erro ao carregar a imagem do boss_sleeping:", e);
+        };
+
+
         this.bgMusic = new Audio(new URL('../assets/audio/background_music.mp4', import.meta.url).href);
         this.bgMusic.loop = true;
         this.bgMusic.volume = this.volumeMusica / 100;
 
-        this.bgMusic.play().catch(e => console.warn("Erro ao iniciar música de fundo (provavelmente por falta de interação do usuário):", e));
+        this.bgMusic.play().catch(e => console.warn("Erro ao iniciar música de fundo:", e));
 
         const startMusicOnInteraction = () => {
           if (this.bgMusic && this.bgMusic.paused) {
@@ -277,7 +330,6 @@ export default {
           if (this.$refs.videoPlayer) this.$refs.videoPlayer.play();
         });
       } else {
-        // Se a historinha já foi vista, inicia diretamente a gameplay na fase atual
         this.iniciarGameplay(this.faseAtualDoJogo);
       }
     },
@@ -287,13 +339,13 @@ export default {
         this.videoIndex++;
       } else {
         this.historinhaJaVista = true;
-        this.iniciarGameplay(this.faseAtualDoJogo); // Passa a fase atual para iniciar gameplay
+        this.iniciarGameplay(this.faseAtualDoJogo);
       }
     },
 
     pularVideoHistorinha() {
       this.historinhaJaVista = true;
-      this.iniciarGameplay(this.faseAtualDoJogo); // Passa a fase atual para iniciar gameplay
+      this.iniciarGameplay(this.faseAtualDoJogo);
     },
 
     mostrarCutsceneFase(proximaFase) {
@@ -303,7 +355,6 @@ export default {
             this.currentCutsceneFaseIndex = cutsceneInfo.startIndex;
             this.nextFaseAfterCutscene = proximaFase;
             this.limparTimers();
-
             this.$nextTick(() => {
                 const videoPlayerFase = this.$refs.videoPlayerFase;
                 if (videoPlayerFase) {
@@ -312,14 +363,7 @@ export default {
                 }
             });
         } else {
-            // Se não houver cutscene para esta fase ou já foi vista
-            // Se for a transição para a Fase 2, sempre chama a contagem
-            if (proximaFase === 2) {
-                this.iniciarContagemRegressiva(proximaFase);
-            } else {
-                // Para outras fases, avança direto
-                this.avancarParaProximaFase(proximaFase);
-            }
+            this.iniciarContagemRegressiva(proximaFase);
         }
     },
 
@@ -335,28 +379,75 @@ export default {
                 }
             });
         } else {
-            // Fim da cutscene para esta fase
             this.cutscenesFaseJaVistas[this.nextFaseAfterCutscene] = true;
-            // Inicia a contagem regressiva para a próxima fase alvo (que será a Fase 2)
             this.iniciarContagemRegressiva(this.nextFaseAfterCutscene);
         }
     },
 
     pularCutsceneFase() {
+      const videoPlayerFase = this.$refs.videoPlayerFase;
+      if (videoPlayerFase) {
+        videoPlayerFase.pause();
+        videoPlayerFase.currentTime = 0;
+      }
       this.cutscenesFaseJaVistas[this.nextFaseAfterCutscene] = true;
-      // Inicia a contagem regressiva para a próxima fase alvo ao pular
       this.iniciarContagemRegressiva(this.nextFaseAfterCutscene);
     },
 
-    // Inicia a contagem regressiva
+    iniciarCutsceneFase3() {
+      this.estado = "cutsceneFase3";
+      this.currentCutsceneFase3Index = 0;
+      this.limparTimers();
+      this.$nextTick(() => {
+        const videoPlayerFase3 = this.$refs.videoPlayerFase3;
+        if (videoPlayerFase3) {
+          videoPlayerFase3.play().catch(e => console.warn("Erro ao tocar vídeo da cutscene da Fase 3:", e));
+        }
+      });
+    },
+
+    avancarVideoCutsceneFase3() {
+      if (this.currentCutsceneFase3Index < this.videosFase3.length - 1) {
+        this.currentCutsceneFase3Index++;
+        this.$nextTick(() => {
+          const videoPlayerFase3 = this.$refs.videoPlayerFase3;
+          if (videoPlayerFase3) {
+            videoPlayerFase3.load();
+            videoPlayerFase3.play().catch(e => console.warn("Erro ao tocar o próximo vídeo da cutscene da Fase 3:", e));
+          }
+        });
+      } else {
+        this.cutsceneFase3JaVista = true;
+        this.iniciarContagemRegressiva(3);
+      }
+    },
+
+    pularCutsceneFase3() {
+      const videoPlayerFase3 = this.$refs.videoPlayerFase3;
+      if (videoPlayerFase3) {
+        videoPlayerFase3.pause();
+        videoPlayerFase3.currentTime = 0;
+      }
+      this.cutsceneFase3JaVista = true;
+      this.iniciarContagemRegressiva(3);
+    },
+
     iniciarContagemRegressiva(proximaFaseAlvo) {
-      // Primeiro, muda o fundo para o da próxima fase alvo
       this.fundoAtual = this.fundos[proximaFaseAlvo - 1] || this.fundos[0];
-
-      // Em seguida, inicia o estado de contagem
       this.estado = 'countdown';
-      this.countdownValue = 3;
 
+      // Força o desenho do novo fundo no canvas
+      const canvas = this.$refs.canvas;
+      if (canvas && this.fundoAtual) {
+          const ctx = canvas.getContext('2d');
+          ctx.clearRect(0, 0, this.width, this.height); // Limpa a tela
+          // Desenha o fundo da próxima fase (a menos que seja a fase 5, que usa vídeo)
+          if (proximaFaseAlvo !== 5) {
+            ctx.drawImage(this.fundoAtual, 0, 0, this.width, this.height);
+          }
+      }
+
+      this.countdownValue = 3;
       if (this.countdownIntervalId) {
           clearInterval(this.countdownIntervalId);
       }
@@ -369,7 +460,6 @@ export default {
           setTimeout(() => {
             clearInterval(this.countdownIntervalId);
             this.countdownIntervalId = null;
-            // Avança para a próxima fase após o "JÁ!"
             this.avancarParaProximaFase(proximaFaseAlvo);
           }, 800);
         } else {
@@ -380,41 +470,31 @@ export default {
     },
 
     avancarParaProximaFase(novaFase) {
-      // Salva a pontuação atual ANTES de atualizar o nível para a nova fase
-      // Esta é a pontuação com a qual o jogador "entrou" na próxima fase
       this.pontosSalvos = this.pontos;
-
-      this.nivel = novaFase; // Atualiza o nível lógico do jogo
-      this.faseAtualDoJogo = novaFase; // Atualiza a fase atual do jogo (para renascer nela)
+      this.nivel = novaFase;
+      this.faseAtualDoJogo = novaFase;
       this.zonasDeColisao = atualizarZonasDeColisao(this.nivel, zonasPorFase());
-      // O fundo já foi atualizado antes da contagem regressiva
-
-      this.pontos += 25; // Mantém o bônus de 25 pontos ao avançar de fase
+      this.pontos += 25;
       
-      // ATUALIZA A VELOCIDADE DOS PROJÉTEIS PARA A NOVA FASE
       this.velocidadeProjeteis = this.velocidadeProjeteisPorFase[this.nivel];
-
       if (this.nivel === 5) {
         this.projectiles = [];
       }
-      this.setupInimigos(); // Garante que inimigos são configurados para a nova fase
-      this.estado = "jogando"; // Garante que o estado está "jogando"
-      this.iniciarTimer(); // Reinicia o timer para a nova fase
-      this.iniciarLoop(); // Garante que o loop de animação está ativo
+      this.setupInimigos();
+      this.estado = "jogando";
+      this.iniciarTimer();
+      this.iniciarLoop();
     },
 
     iniciarGameplay(faseParaIniciar) {
       this.estado = "jogando";
-      this.nivel = faseParaIniciar; // Define o nível do jogo como a fase passada
-      this.faseAtualDoJogo = faseParaIniciar; // Atualiza a fase atual do jogo
-      
-      // Define a velocidade inicial dos projéteis para a fase que está começando
+      this.nivel = faseParaIniciar;
+      this.faseAtualDoJogo = faseParaIniciar;
       this.velocidadeProjeteis = this.velocidadeProjeteisPorFase[faseParaIniciar];
-
       this.player.x = this.width / 2;
       this.player.y = this.height / 2;
-      this.zonasDeColisao = atualizarZonasDeColisao(this.nivel, zonasPorFase()); // ATUALIZA ZONAS AQUI
-      this.setupInimigos(); // CONFIGURA INIMIGOS AQUI
+      this.zonasDeColisao = atualizarZonasDeColisao(this.nivel, zonasPorFase());
+      this.setupInimigos();
       this.$nextTick(() => {
         this.setupControles();
         this.iniciarTimer();
@@ -424,7 +504,6 @@ export default {
 
     renascer() {
       if (this.estado !== 'morte') return;
-
       setTimeout(() => {
         this.estado = 'jogando';
         const video = this.$refs.videoMortePlayer;
@@ -432,21 +511,18 @@ export default {
           video.pause();
           video.currentTime = 0;
         }
-        this.limparTimers(); // Limpa todos os timers antes de reiniciar
+        this.limparTimers();
 
         this.vidas = 3;
-        // Lógica de pontos e nível:
-        if (this.faseAtualDoJogo === 1) { // Se morreu na Fase 1
-          this.pontos = 0; // Zera pontuação
-          this.pontosSalvos = 0; // Zera pontuação salva
-          this.nivel = 1; // Reinicia na Fase 1
-        } else { // Se morreu a partir da Fase 2
-          this.pontos = this.pontosSalvos; // Volta para a pontuação salva da fase anterior
-          // this.nivel e this.faseAtualDoJogo já estão corretos (permanecem na fase em que morreu)
+        if (this.faseAtualDoJogo === 1) {
+          this.pontos = 0;
+          this.pontosSalvos = 0;
+          this.nivel = 1;
+        } else {
+          this.pontos = this.pontosSalvos;
         }
-        this.tempo = 0; // Opcional: mantém o reset de tempo
+        this.tempo = 0;
 
-        // Garante que a velocidade dos projéteis e o fundo sejam os da fase atual do jogo
         this.velocidadeProjeteis = this.velocidadeProjeteisPorFase[this.faseAtualDoJogo];
         this.fundoAtual = this.fundos[this.faseAtualDoJogo - 1] || this.fundos[0];
 
@@ -456,10 +532,9 @@ export default {
         this.powerUps = [];
         this.slowAtivo = false;
 
-        // Reconfigura inimigos para a fase em que o jogador renasceu
         this.setupInimigos();
-        this.iniciarTimer(); // Inicia o timer de tempo
-        this.iniciarLoop(); // Inicia o loop de animação e os timers de spawn de power-ups/projéteis
+        this.iniciarTimer();
+        this.iniciarLoop();
       }, 500);
     },
 
@@ -469,36 +544,29 @@ export default {
       const fundosTemp = this.fundos;
       const volumeMusicaTemp = this.volumeMusica;
       const bgMusicTemp = this.bgMusic;
+      const cutsceneFase3JaVistaTemp = this.cutsceneFase3JaVista;
 
       this.limparTimers();
-
-      // Restaura o estado inicial de data, mas mantém alguns dados
       Object.assign(this.$data, this.$options.data.call(this));
-
       this.historinhaJaVista = historinhaJaVistaTemp;
       this.imagens = imagensTemp;
       this.fundos = fundosTemp;
       this.volumeMusica = volumeMusicaTemp;
       this.bgMusic = bgMusicTemp;
-
-      // Resetar para Fase 1 e cutscenes vistas
+      this.cutsceneFase3JaVista = cutsceneFase3JaVistaTemp;
       this.nivel = 1;
-      this.faseAtualDoJogo = 1; // Garante que o jogo reinicia na Fase 1
-      this.velocidadeProjeteis = this.velocidadeProjeteisPorFase[1]; // Resetar velocidade para a Fase 1
-      this.pontos = 0; // Zera pontuação para o início de um novo jogo
-      this.pontosSalvos = 0; // Garante que pontosSalvos seja zerado
-
-      this.cutscenesFaseJaVistas = {
-          2: false, 3: false, 4: false, 5: false,
-      };
-
+      this.faseAtualDoJogo = 1;
+      this.velocidadeProjeteis = this.velocidadeProjeteisPorFase[1];
+      this.pontos = 0;
+      this.pontosSalvos = 0;
+      this.cutscenesFaseJaVistas = { 2: false, 3: false, 4: false, 5: false };
+      this.cutsceneFase3JaVista = false;
       if (this.bgMusic) {
         this.bgMusic.volume = this.volumeMusica / 100;
         if (this.bgMusic.paused) {
           this.bgMusic.play().catch(e => console.warn("Erro ao tentar tocar música após reset:", e));
         }
       }
-
       this.fundoAtual = this.fundos[this.nivel - 1] || this.fundos[0];
     },
 
@@ -507,17 +575,25 @@ export default {
         clearInterval(this.tempoInterval);
         this.tempoInterval = null;
       }
-      if (this.projectileInterval) { // Para os power-ups
+      if (this.projectileInterval) {
         clearInterval(this.projectileInterval);
         this.projectileInterval = null;
       }
-      if (this.projectileSpawnInterval) { // NOVO: Para os projéteis dos inimigos/boss
+      if (this.projectileSpawnInterval) {
         clearInterval(this.projectileSpawnInterval);
         this.projectileSpawnInterval = null;
       }
       if (this.slowTimeoutId) {
         clearTimeout(this.slowTimeoutId);
         this.slowTimeoutId = null;
+      }
+       if (this.bossTimers.attack) {
+        clearTimeout(this.bossTimers.attack);
+        this.bossTimers.attack = null;
+      }
+      if (this.bossTimers.rest) {
+        clearTimeout(this.bossTimers.rest);
+        this.bossTimers.rest = null;
       }
       cancelAnimationFrame(this.animationId);
       this.animationId = null;
@@ -543,11 +619,12 @@ export default {
     },
 
     setupInimigos() {
-      const size = 80; // DOBRO DO TAMANHO ORIGINAL (40 * 2) - Ajuste dos inimigos
+      const size = 80;
       const padding = 50;
-      if (this.faseAtualDoJogo === 5) { // Usa faseAtualDoJogo para configurar inimigos/boss
+      if (this.faseAtualDoJogo === 5) {
         this.inimigos = [];
-        this.boss = gerarBoss(this.width, this.height, 400); // DOBRO DO TAMANHO ORIGINAL (200 * 2) - Ajuste do boss
+        this.boss = gerarBoss(this.width, this.height, 400);
+        this.iniciarCicloBoss(); // Inicia o ciclo de ataque/descanso
       } else {
         this.boss = null;
         this.inimigos = gerarInimigosPorFase(this.faseAtualDoJogo, this.width, this.height, size, padding);
@@ -560,25 +637,21 @@ export default {
         if (this.estado !== "jogando" || this.inGameMenuOpen) return;
 
         this.tempo++;
-        // Se o tempo é múltiplo de 25 segundos, e estamos em uma transição de fase
-        // Verifica se a fase atual é menor que 5 (última fase)
         if (this.tempo % 25 === 0 && this.nivel < 5 && !this.trocaFaseDelay) {
-            this.trocaFaseDelay = true; // Ativa o flag para evitar chamadas múltiplas
+            this.trocaFaseDelay = true;
 
-            // Lógica para cutscene/contagem regressiva
-            if (this.nivel === 1) {
-                // Se for a transição da Fase 1 para a Fase 2, mostra a cutscene
-                setTimeout(() => {
-                    this.mostrarCutsceneFase(this.nivel + 1); // Chama para a próxima fase (Fase 2)
-                    this.trocaFaseDelay = false;
-                }, 3000); // Pequeno atraso antes de mudar de fase/exibir cutscene
-            } else {
-                // Para as transições das Fases 2, 3 e 4, vai direto para a contagem regressiva
-                setTimeout(() => {
-                    this.iniciarContagemRegressiva(this.nivel + 1); // Chama para a próxima fase (Fase 3, 4, 5)
-                    this.trocaFaseDelay = false;
-                }, 3000);
-            }
+            setTimeout(() => {
+                if (this.nivel === 1) {
+                    this.mostrarCutsceneFase(this.nivel + 1);
+                } else if (this.nivel === 2 && !this.cutsceneFase3JaVista) {
+                    this.iniciarCutsceneFase3();
+                } else if (this.nivel === 3) {
+                  this.mostrarCutsceneFase(this.nivel + 1);
+                } else if (this.nivel === 4) {
+                    this.mostrarCutsceneFase(this.nivel + 1);
+                }
+                this.trocaFaseDelay = false;
+            }, 3000);
         }
         this.pontos += 10;
       }, 1000);
@@ -591,8 +664,6 @@ export default {
         return;
       }
       const ctx = canvas.getContext("2d");
-
-      // Limpa e inicia o intervalo de spawn de power-ups
       clearInterval(this.projectileInterval);
       this.projectileInterval = setInterval(() => {
         if (this.estado !== "jogando" || this.inGameMenuOpen) return;
@@ -602,43 +673,48 @@ export default {
           const powerUp = {
             x: Math.random() * this.width,
             y: -50,
-            r: 20, // DOBRO DO TAMANHO ORIGINAL (10 * 2)
+            r: 20,
             type: Math.random() < 0.5 ? "life" : "slow",
             rotation: 0,
           };
           this.powerUps.push(powerUp);
         }
-      }, 300); // Frequência de spawn de power-ups
-
-      // NOVO: Limpa e inicia o intervalo para os inimigos/boss atirarem
+      }, 300);
       clearInterval(this.projectileSpawnInterval);
-      this.projectileSpawnInterval = setInterval(() => {
-        if (this.estado !== "jogando" || this.inGameMenuOpen) return;
+      
+      // Adiciona um atraso de 2 segundos antes de começar a atirar
+      setTimeout(() => {
+        // Só inicia o intervalo se o jogo ainda estiver no estado 'jogando'
+        if(this.estado !== 'jogando') return;
 
-        if (this.faseAtualDoJogo < 5) { // Usa faseAtualDoJogo
-          this.inimigos.forEach(inimigo => {
+        this.projectileSpawnInterval = setInterval(() => {
+          if (this.estado !== "jogando" || this.inGameMenuOpen) return;
+
+          if (this.faseAtualDoJogo < 5) {
+            this.inimigos.forEach(inimigo => {
+              atirarProjeteis({
+                atirador: inimigo,
+                player: this.player,
+                slowAtivo: this.slowAtivo,
+                velocidadeProjeteis: this.velocidadeProjeteis,
+                imagens: this.imagens,
+                projectiles: this.projectiles
+              }, { velocidadeMultiplicador: 1, width: this.projectileSize, height: this.projectileSize });
+            });
+          } else if (this.boss && this.bossState === 'attacking') {
             atirarProjeteis({
-              atirador: inimigo,
+              atirador: this.boss,
               player: this.player,
               slowAtivo: this.slowAtivo,
-              velocidadeProjeteis: this.velocidadeProjeteis, // Usa a velocidade da fase
+              velocidadeProjeteis: this.velocidadeProjeteis,
               imagens: this.imagens,
               projectiles: this.projectiles
-            }, { velocidadeMultiplicador: 1, width: this.projectileSize, height: this.projectileSize });
-          });
-        } else if (this.boss) { // Usa faseAtualDoJogo
-          atirarProjeteis({
-            atirador: this.boss,
-            player: this.player,
-            slowAtivo: this.slowAtivo,
-            velocidadeProjeteis: this.velocidadeProjeteis, // Usa a velocidade da fase
-            imagens: this.imagens,
-            projectiles: this.projectiles
-          }, { velocidadeMultiplicador: 2, width: this.projectileSize, height: this.projectileSize });
-        }
-      }, 700); // Frequência dos inimigos/boss atirarem (ajuste este valor para a dificuldade desejada)
+            }, { velocidadeMultiplicador: 2, width: this.projectileSize, height: this.projectileSize });
+          }
+        }, 700);
+      }, 2000);
+      // Atraso de 2000ms (2 segundos)
 
-      // Inicia o loop de animação para desenhar e mover os elementos
       cancelAnimationFrame(this.animationId);
       this.animate(ctx);
     },
@@ -650,8 +726,11 @@ export default {
       }
 
       ctx.clearRect(0, 0, this.width, this.height);
-      if (this.fundoAtual || this.imagens.fundoPadrao) {
-        ctx.drawImage(this.fundoAtual || this.imagens.fundoPadrao, 0, 0, this.width, this.height);
+      // Desenha o fundo da imagem apenas se NÃO for a fase 5
+      if (this.faseAtualDoJogo !== 5) {
+          if (this.fundoAtual || this.imagens.fundoPadrao) {
+            ctx.drawImage(this.fundoAtual || this.imagens.fundoPadrao, 0, 0, this.width, this.height);
+          }
       }
 
       const speed = 5;
@@ -661,54 +740,70 @@ export default {
         left: { x: this.player.x - speed, y: this.player.y },
         right: { x: this.player.x + speed, y: this.player.y },
       };
-      // A colisão com as zonas de colisão é verificada aqui
       verificarTeclaPressionada(this.keysPressed, this.zonasDeColisao, nextPositions, this.player, speed);
-
-      // Certifique-se de que o player permaneça dentro dos limites da tela
       const metadePlayer = this.player.size / 2;
       this.player.x = Math.max(metadePlayer, Math.min(this.width - metadePlayer, this.player.x));
       this.player.y = Math.max(metadePlayer, Math.min(this.height - metadePlayer, this.player.y));
-
-
-      // Estilos para o texto do HUD
-      ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; // Cor branca semi-transparente
-      ctx.font = "bold 24px 'Press Start 2P', cursive"; // Fonte estilo pixel, se disponível, ou fallback
-      ctx.shadowColor = "rgba(0, 0, 0, 0.7)"; // Sombra para o texto
+      ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+      ctx.font = "bold 24px 'Press Start 2P', cursive";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
       ctx.shadowBlur = 5;
       ctx.shadowOffsetX = 2;
       ctx.shadowOffsetY = 2;
-
       ctx.fillText(`Tempo: ${this.tempo}s`, 20, 30);
       ctx.fillText(`Pontos: ${this.pontos}`, 20, 60);
-      ctx.fillText(`Fase: ${this.faseAtualDoJogo}`, 20, 90); // Usa faseAtualDoJogo aqui
+      ctx.fillText(`Fase: ${this.faseAtualDoJogo}`, 20, 90);
       ctx.fillText(`Vidas: ${this.vidas}`, 20, 120);
-
-      // Resetar sombra para não afetar outros desenhos
       ctx.shadowColor = "transparent";
       ctx.shadowBlur = 0;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;
-
       if (this.imagens.player) {
         drawImage(ctx, this.imagens.player, this.player.x, this.player.y, this.player.size, this.player.size);
       }
 
-      if (this.faseAtualDoJogo < 5) { // Usa faseAtualDoJogo para decidir se desenha inimigos ou boss
-        this.processarInimigos(ctx); // APENAS DESENHA inimigos, NÃO MAIS SPAWNA PROJÉTEIS AQUI
+      if (this.faseAtualDoJogo < 5) {
+        this.processarInimigos(ctx);
       } else {
-        this.processarBoss(ctx); // APENAS DESENHA boss, NÃO MAIS SPAWNA PROJÉTEIS AQUI
+        this.processarBoss(ctx);
       }
 
-      this.processarProjetiles(ctx); // Move e desenha projéteis existentes
+      this.processarProjetiles(ctx);
       this.processarPowerUps(ctx);
       this.animationId = requestAnimationFrame(() => this.animate(ctx));
     },
 
     processarBoss(ctx) {
-      this.moverBoss();
-      if (!this.boss || !this.imagens.boss) return;
+      if (this.bossState === 'attacking') { // Só move o boss se ele estiver atacando
+        this.moverBoss();
+      }
+      if (!this.boss) return;
+      // Usa a imagem normal ou a de dormir com base no estado
+      const bossImage = this.bossState === 'sleeping' ? this.imagens.boss_sleeping : this.imagens.boss;
 
-      drawImage(ctx, this.imagens.boss, this.boss.x, this.boss.y, this.boss.size, this.boss.size, 0);
+      if (bossImage) {
+        drawImage(ctx, bossImage, this.boss.x, this.boss.y, this.boss.size, this.boss.size, 0);
+      }
+    },
+
+    iniciarCicloBoss() {
+      if (!this.boss) return;
+      this.bossState = 'attacking';
+      // Limpa timer anterior para evitar múltiplos ciclos rodando
+      if(this.bossTimers.attack) clearTimeout(this.bossTimers.attack);
+      if(this.bossTimers.rest) clearTimeout(this.bossTimers.rest);
+
+      // Após 15s, o boss vai descansar
+      this.bossTimers.attack = setTimeout(() => {
+        this.bossState = 'sleeping';
+        
+        // Após 5s de descanso, ele volta a atacar
+        this.bossTimers.rest = setTimeout(() => {
+          this.iniciarCicloBoss(); // Reinicia o ciclo
+        }, 5000); // 5 segundos de descanso
+
+      }, 15000);
+      // 15 segundos de ataque
     },
 
     processarInimigos(ctx) {
@@ -733,7 +828,6 @@ export default {
           return false;
         }
 
-        // Colisão do projétil com o player
         if (verificarColisaoDeProjetil(p.x, p.y, p.r, this.player.x, this.player.y, this.player.hitboxRadius)) {
           this.vidas--;
           if (this.vidas <= 0) {
@@ -762,7 +856,7 @@ export default {
         }
 
         const img = pu.type === "life" ? this.imagens.vida : this.imagens.slow;
-        const size = 60; // DOBRO DO TAMANHO ORIGINAL (30 * 2)
+        const size = 60;
         pu.rotation = (pu.rotation || 0) + 0.03;
         if (img) {
           drawImage(ctx, img, pu.x, pu.y, size, size, pu.rotation);
@@ -793,13 +887,20 @@ export default {
 
     moverBoss() {
       if (!this.boss) return;
+      // Atualiza as posições X e Y
+      this.boss.x += this.bossDirecaoX * (this.boss.velocidade * 0.75);
+      // Movimento horizontal um pouco mais lento
       this.boss.y += this.bossDirecao * this.boss.velocidade;
+      const halfSize = this.boss.size / 2;
 
-      if (
-        this.boss.y + this.boss.size / 2 > this.height - 50 ||
-        this.boss.y - this.boss.size / 2 < 50
-      ) {
+      // Verifica colisão com as bordas verticais
+      if (this.boss.y + halfSize > this.height - 50 || this.boss.y - halfSize < 50) {
         this.bossDirecao *= -1;
+      }
+
+      // Verifica colisão com as bordas horizontais
+      if (this.boss.x + halfSize > this.width || this.boss.x - halfSize < 0) {
+        this.bossDirecaoX *= -1;
       }
     },
 
@@ -820,18 +921,30 @@ export default {
     toggleGameMenu() {
       this.inGameMenuOpen = !this.inGameMenuOpen;
       if (this.inGameMenuOpen) {
-        this.limparTimers(); // Limpa todos os timers (inclusive o de projéteis)
+        this.limparTimers();
         if (this.bgMusic) {
           this.bgMusic.pause();
         }
       } else {
-        // Ao fechar o menu, reinicia os timers
-        this.iniciarLoop(); // Este vai reiniciar o timer de projéteis e power-ups
-        this.iniciarTimer(); // Este reinicia o timer de tempo
+        this.iniciarLoop();
+        this.iniciarTimer();
         if (this.bgMusic) {
           this.bgMusic.play().catch(e => console.warn("Erro ao tentar tocar música ao fechar menu in-game:", e));
         }
       }
+    },
+
+    pularFase() {
+      if (this.nivel >= 5) return;
+
+      this.inGameMenuOpen = false;
+      // Pausa a música para não tocar sobre o vídeo da cutscene
+      if (this.bgMusic) {
+        this.bgMusic.pause();
+      }
+
+      // Chama a função que mostra a cutscene e avança para o próximo nível
+      this.mostrarCutsceneFase(this.nivel + 1);
     },
 
     voltarAoMenuPrincipal() {
@@ -866,28 +979,35 @@ export default {
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-
-/* Estilos gerais do container do jogo para ocupar a tela toda */
 .game-container {
   position: relative;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  font-family: 'Press Start 2P', cursive, Arial, sans-serif; /* Prioriza fonte pixel */
+  font-family: 'Press Start 2P', cursive, Arial, sans-serif;
 }
 
-/* Estilos do Canvas */
+.background-video {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+  z-index: -1;
+  /* Posiciona o vídeo atrás do canvas */
+}
+
 canvas {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: black;
+  background: transparent; /* Garante que o canvas seja transparente */
   z-index: 0;
 }
 
-/* --- ESTILOS DO MENU PRINCIPAL (MODERNO, MENOS SATURADO) --- */
 .main-menu {
   position: fixed;
   top: 0;
@@ -897,10 +1017,9 @@ canvas {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, rgba(15, 0, 0, 0.95), rgba(40, 0, 0, 0.95), rgba(15, 0, 0, 0.95)); /* Degradê mais profundo */
-  /* Adicionar um padrão sutil ou noise */
-  background-image: url('data:image/svg+base64,PHN2ZyB2aWV3Qm94PSIwIDAgOCA4IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0wIDhoOHYwSDB6TTMgMGgxVjFoLTF6TTIgMmgxVjNoLTF6TTUgMmgxVjNoLTF6TTIgNWgxVjZoLTF6TTUgNWgxVjZoLTF6TTMgN2gxVjhoLTF6IiBmaWxsPSIjMmYwMDAwIiBmaWxsLW9wYWNpdHk9IjAuMSIvPjwvc3ZnPg==');
-  background-size: 8px 8px; /* Tamanho do padrão */
+  background: linear-gradient(135deg, rgba(15, 0, 0, 0.95), rgba(40, 0, 0, 0.95), rgba(15, 0, 0, 0.95));
+  background-image: url('data:image/svg+base64,PHN2ZyB2aWV3Qm94PSIwIDAgOCA4IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9MDBoOHYwSDB6TTMgMGgxVjFoLTF6TTIgMmgxVjNoLTF6TTUgMmgxVjNoLTF6TTIgNWgxVjZoLTF6TTUgNWgxVjZoLTF6TTMgN2gxVjhoLTF6IiBmaWxsPSIjMmYwMDAwIiBmaWxsLW9wYWNpdHk9IjAuMSIvPjwvc3ZnPg==');
+  background-size: 8px 8px;
   z-index: 10;
 }
 
@@ -908,54 +1027,61 @@ canvas {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 50px; /* Mais padding */
-  background: linear-gradient(145deg, #1a0000, #3a0000); /* Degradê mais escuro e profundo */
-  border-radius: 20px; /* Bordas mais arredondadas */
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 50px rgba(255, 0, 0, 0.2); /* Sombra mais intensa */
-  animation: fadeInScale 0.7s ease-out forwards; /* Animação um pouco mais lenta */
-  border: 2px solid #5a0000; /* Borda sutil para dar profundidade */
+  padding: 50px;
+  background: linear-gradient(145deg, #1a0000, #3a0000);
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 50px rgba(255, 0, 0, 0.2);
+  animation: fadeInScale 0.7s ease-out forwards;
+  border: 2px solid #5a0000;
+  width: 90%; /* Adicionado para ocupar mais espaço horizontal */
+  max-width: 800px;
+  /* Aumentado o limite de largura */
 }
 
 .game-logo {
-  width: 90%; /* Logo um pouco maior */
-  max-width: 550px;
-  margin-bottom: 40px; /* Más espacio debajo de la logo */
-  filter: drop-shadow(0 0 15px rgba(255, 50, 50, 0.7)) brightness(1.1); /* Brillo más intenso */
-  animation: logoPulse 2s infinite alternate ease-in-out; /* Animación de pulso en la logo */
+  width: 90%;
+  max-width: 650px;
+  /* Aumentado o tamanho máximo do logo */
+  margin-bottom: 40px;
+  filter: drop-shadow(0 0 15px rgba(255, 50, 50, 0.7)) brightness(1.1);
+  animation: logoPulse 2s infinite alternate ease-in-out;
 }
 
 @keyframes logoPulse {
-  0% { transform: scale(1); filter: drop-shadow(0 0 15px rgba(255, 50, 50, 0.7)); }
-  100% { transform: scale(1.03); filter: drop-shadow(0 0 25px rgba(255, 0, 0, 0.9)); }
+  0% { transform: scale(1);
+  filter: drop-shadow(0 0 15px rgba(255, 50, 50, 0.7));
+ }
+  100% { transform: scale(1.03);
+  filter: drop-shadow(0 0 25px rgba(255, 0, 0, 0.9)); }
 }
 
 .button-group {
   display: flex;
   flex-direction: column;
-  gap: 20px; /* Más espacio entre los botones */
+  gap: 20px;
   width: 100%;
-  max-width: 350px; /* Botones un poco más anchos */
+  max-width: 450px; /* Aumentado o tamanho máximo dos botões */
 }
 
 .menu-button {
-  padding: 18px 30px; /* Más padding */
-  font-size: 1.3em; /* Fuente un poco más grande */
+  padding: 18px 30px;
+  font-size: 1.3em;
   font-weight: bold;
   color: #fff;
-  background-color: #550000; /* Color de fondo más oscuro */
-  border: 3px solid #ff5555; /* Borde más grueso y vibrante */
-  border-radius: 10px; /* Bordes más redondeados */
+  background-color: #550000;
+  border: 3px solid #ff5555;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(.25,.8,.25,1); /* Transição suave e elegante */
+  transition: all 0.3s cubic-bezier(.25,.8,.25,1);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
   text-transform: uppercase;
-  letter-spacing: 2px; /* Más espaciado entre letras */
-  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5); /* Sombra en el texto del botón */
+  letter-spacing: 2px;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
   position: relative;
-  overflow: hidden; /* Para el efecto de brillo */
+  overflow: hidden;
 }
 
-.menu-button::before { /* Efecto de brillo al pasar el mouse */
+.menu-button::before {
   content: '';
   position: absolute;
   top: 0;
@@ -971,20 +1097,19 @@ canvas {
 }
 
 .menu-button:hover {
-  background-color: #ff3333; /* Fondo más vibrante al pasar el mouse */
-  transform: translateY(-5px) scale(1.02); /* Pop más pronunciado */
+  background-color: #ff3333;
+  transform: translateY(-5px) scale(1.02);
   box-shadow: 0 10px 25px rgba(255, 51, 51, 0.6), 0 0 30px rgba(255, 0, 0, 0.4);
-  border-color: #fff; /* Borde blanco al pasar el mouse */
+  border-color: #fff;
 }
 
 .menu-button:active {
   transform: translateY(0) scale(0.98);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-  background-color: #aa0000; /* Fondo más oscuro al hacer clic */
+  background-color: #aa0000;
   border-color: #ff0000;
 }
 
-/* --- ESTILOS PARA HISTORINHA/CUTSCENES (Vídeos) --- */
 .historinha, .gameover-screen {
   position: fixed;
   top: 0;
@@ -1001,19 +1126,18 @@ canvas {
 .video-player {
   width: 100%;
   height: 100%;
-  object-fit: contain; /* Garante que o vídeo seja exibido corretamente */
+  object-fit: contain;
   background-color: black;
 }
 
-/* ESTILO PARA O BOTÃO "Pular história" (para a história inicial E cutscenes de fase) */
 .skip-intro-button {
   position: absolute;
   top: 20px;
   left: 20px;
   padding: 10px 20px;
-  background-color: rgba(0, 0, 0, 0.7); /* Fundo mais escuro */
+  background-color: rgba(0, 0, 0, 0.7);
   color: white;
-  border: 1px solid rgba(255, 255, 255, 0.4); /* Borda mais visível */
+  border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 5px;
   cursor: pointer;
   font-size: 0.9em;
@@ -1022,11 +1146,10 @@ canvas {
 }
 
 .skip-intro-button:hover {
-  background-color: rgba(255, 50, 50, 0.7); /* Cor vermelha no hover */
+  background-color: rgba(255, 50, 50, 0.7);
   border-color: #ffcccc;
 }
 
-/* --- ESTILOS DA TELA DE OPÇÕES E CRÉDITOS --- */
 .options-screen, .credits-screen {
   position: fixed;
   top: 0;
@@ -1034,7 +1157,7 @@ canvas {
   width: 100vw;
   height: 100vh;
   background: linear-gradient(135deg, rgba(15, 0, 0, 0.95), rgba(40, 0, 0, 0.95), rgba(15, 0, 0, 0.95));
-  background-image: url('data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgOCA4IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0wIDhoOHY4SDB6TTMgMGgxVjFoLTF6TTIgMmgxVjNoLTF6TTUgMmgxVjNoLTF6TTIgNWgxVjZoLTF6TTUgNWgxVjZoLTF6TTMgN2gxVjhoLTF6IiBmaWxsPSIjMmYwMDAwIiBmaWxsLW9wYWNpdHk9IjAuMSIvPjwvc3ZnPg==');
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgOCA4IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9MkYwMDAwIiBmaWxsLW9wYWNpdHk9IjAuMSIvPjwvc3ZnPg==');
   background-size: 8px 8px;
   display: flex;
   flex-direction: column;
@@ -1047,7 +1170,7 @@ canvas {
 }
 
 .options-content, .credits-content {
-    background: rgba(30, 0, 0, 0.85); /* Fundo mais escuro */
+    background: rgba(30, 0, 0, 0.85);
     padding: 40px;
     border-radius: 15px;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 0, 0, 0.1);
@@ -1058,9 +1181,9 @@ canvas {
 }
 
 .screen-title {
-  font-size: 3.5em; /* Títulos maiores */
+  font-size: 3.5em;
   margin-bottom: 40px;
-  color: #ff6666; /* Cor vermelha mais suave */
+  color: #ff6666;
   text-shadow: 0 0 15px rgba(255, 100, 100, 0.8);
   letter-spacing: 3px;
   text-transform: uppercase;
@@ -1071,13 +1194,13 @@ canvas {
   padding: 25px 35px;
   border-radius: 10px;
   margin-bottom: 30px;
-  width: 100%; /* Ocupa a largura total do content */
+  width: 100%;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
   border: 1px solid #6a0000;
 }
 
 .option-group h3 {
-  font-size: 1.6em; /* Título do grupo maior */
+  font-size: 1.6em;
   margin-top: 0;
   margin-bottom: 20px;
   color: #ffcc00;
@@ -1095,14 +1218,14 @@ canvas {
 .volume-control label {
   font-size: 1.1em;
   color: #ccc;
-  min-width: 70px; /* Para alinhar */
+  min-width: 70px;
   text-align: right;
 }
 
 .volume-control input[type="range"] {
   width: 60%;
   -webkit-appearance: none;
-  height: 10px; /* Más grosso */
+  height: 10px;
   background: #333;
   border-radius: 5px;
   outline: none;
@@ -1111,12 +1234,12 @@ canvas {
 
 .volume-control input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 24px; /* Mayor */
-  height: 24px; /* Mayor */
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: #ff3333;
   cursor: pointer;
-  border: 3px solid #fff; /* Borda más visible */
+  border: 3px solid #fff;
   box-shadow: 0 0 8px rgba(255, 51, 51, 0.7);
 }
 
@@ -1135,7 +1258,7 @@ canvas {
 }
 
 .controls-list li {
-  font-size: 1.2em; /* Texto maior */
+  font-size: 1.2em;
   margin-bottom: 12px;
   color: #eee;
   text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
@@ -1147,7 +1270,7 @@ canvas {
     color: #ddd;
     margin-bottom: 40px;
     text-align: left;
-    white-space: pre-line; /* Mantém quebras de linha do JS */
+    white-space: pre-line;
 }
 
 .credits-text strong {
@@ -1156,38 +1279,37 @@ canvas {
 
 .back-button {
   margin-top: 30px;
-  width: auto; /* Deixa o botão se ajustar ao conteúdo */
-  padding: 15px 40px; /* Mais padding para botões de voltar */
+  width: auto;
+  padding: 15px 40px;
 }
 
-/* --- ESTILOS DO MENU IN-GAME --- */
 .in-game-ui {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  pointer-events: none; /* Permite cliques "através" da UI */
+  pointer-events: none;
   z-index: 5;
 }
 
 .hamburger-button {
   position: absolute;
-  top: 25px; /* Um pouco mais para baixo */
-  right: 25px; /* Um pouco mais para a esquerda */
-  background-color: rgba(0, 0, 0, 0.7); /* Fundo mais escuro */
+  top: 25px;
+  right: 25px;
+  background-color: rgba(0, 0, 0, 0.7);
   color: white;
-  border: 3px solid #ff5555; /* Borda mais espessa */
+  border: 3px solid #ff5555;
   border-radius: 50%;
-  width: 55px; /* Um pouco maior */
-  height: 55px; /* Um pouco maior */
-  font-size: 2em; /* Ícone maior */
+  width: 55px;
+  height: 55px;
+  font-size: 2em;
   display: flex;
   justify-content: center;
   align-items: center;
   cursor: pointer;
   z-index: 6;
-  pointer-events: auto; /* Reabilita cliques no botão */
+  pointer-events: auto;
   transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
   box-shadow: 0 0 10px rgba(255, 50, 50, 0.5);
 }
@@ -1205,30 +1327,44 @@ canvas {
   position: absolute;
   top: 0;
   right: 0;
-  width: 350px; /* Um pouco mais largo */
+  width: 350px;
   height: 100vh;
-  background: linear-gradient(90deg, rgba(15, 0, 0, 0.98), rgba(40, 0, 0, 0.98)); /* Degradê para o menu in-game */
+  background: linear-gradient(90deg, rgba(15, 0, 0, 0.98), rgba(40, 0, 0, 0.98));
   box-shadow: -8px 0 20px rgba(0, 0, 0, 0.7);
-  padding: 50px 30px; /* Mais padding */
+  padding: 50px 30px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
   z-index: 10;
-  pointer-events: auto; /* Reabilita cliques dentro do menu */
+  pointer-events: auto;
 }
 
 .in-game-menu-title {
-  font-size: 2.5em; /* Título maior */
+  font-size: 2.5em;
   color: #ffcc00;
   margin-bottom: 50px;
   text-shadow: 0 0 8px rgba(255, 204, 0, 0.6);
   letter-spacing: 2px;
 }
 
+.in-game-menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 100%;
+  margin-top: auto; /* Empurra os botões para o final */
+  padding-bottom: 30px;
+}
+
+.in-game-button {
+    font-size: 1.1em;
+    padding: 15px 20px;
+}
+
 .option-group-compact {
   width: 100%;
-  margin-bottom: 40px; /* Mais espaço */
+  margin-bottom: 40px;
   text-align: center;
   background: rgba(40, 0, 0, 0.7);
   padding: 20px;
@@ -1257,7 +1393,7 @@ canvas {
 }
 
 .volume-control-compact input[type="range"] {
-  width: 180px; /* Um pouco mais largo */
+  width: 180px;
   height: 8px;
   background: #333;
   border-radius: 5px;
@@ -1268,8 +1404,8 @@ canvas {
 
 .volume-control-compact input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 22px; /* Um pouco maior */
-  height: 22px; /* Um pouco maior */
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: #ff3333;
   cursor: pointer;
@@ -1284,107 +1420,70 @@ canvas {
   text-align: left;
 }
 
-.in-game-menu-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  width: 95%;
+/* Animações de transição */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
 }
 
-.in-game-button {
-  width: 100%;
-  padding: 15px 25px;
-  font-size: 1.1em;
+.slide-up-enter-active, .slide-up-leave-active {
+  transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+.slide-up-enter-from, .slide-up-leave-to {
+  transform: translateY(100vh);
 }
 
-/* --- ESTILOS DA TELA DE CONTAGEM REGRESSIVA (3, 2, 1, JÁ!) --- */
+.slide-down-enter-active, .slide-down-leave-active {
+  transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+.slide-down-enter-from, .slide-down-leave-to {
+  transform: translateY(-100vh);
+}
+
+.slide-right-enter-active, .slide-right-leave-active {
+  transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.slide-right-enter-from, .slide-right-leave-to {
+  transform: translateX(100%);
+}
+
 .countdown-screen {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.8); /* Fundo escuro mais opaco */
+  width: 100%;
+  height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
+  background-color: rgba(0, 0, 0, 0.5);
   z-index: 15;
 }
 
 .countdown-text {
-  font-size: 12em; /* Tamanho ainda maior */
-  color: #c0c0c0; /* Cor cinza claro */
-  text-shadow: 0 0 15px rgba(192, 192, 192, 0.6), 0 0 30px rgba(192, 192, 192, 0.3); /* Sombra mais intensa */
-  animation: countdownPulse 0.9s ease-out forwards; /* Animação um pouco mais rápida */
-  font-family: 'Press Start 2P', cursive; /* Usa a fonte pixel */
-  letter-spacing: -5px; /* Mais apertado */
+  font-size: 12em;
+  color: #ffcc00;
+  text-shadow: 0 0 25px rgba(255, 204, 0, 0.8), 0 0 10px #000;
+  animation: countdown-pulse 1s infinite;
 }
 
-/* Animação para o texto da contagem - mais suave */
-@keyframes countdownPulse {
-  0% {
-    transform: scale(0.7);
+@keyframes countdown-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
     opacity: 0;
-    filter: blur(10px);
+    transform: scale(0.9);
   }
-  50% {
-    transform: scale(1.1); /* Um pequeno "pop" mais forte */
+  to {
     opacity: 1;
-    filter: blur(0);
-  }
-  100% {
     transform: scale(1);
-    opacity: 1;
   }
-}
-
-/* --- ANIMAÇÕES DE TRANSIÇÃO (EXISTENTES) --- */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.7s ease; /* Transição um pouco mais lenta */
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-.slide-up-enter-active,
-.slide-up-leave-active {
-  transition: transform 0.6s ease-out, opacity 0.6s ease;
-}
-
-.slide-up-enter-from {
-  transform: translateY(100vh);
-  opacity: 0;
-}
-.slide-up-leave-to {
-    transform: translateY(100vh);
-    opacity: 0;
-}
-
-.slide-down-enter-active,
-.slide-down-leave-active {
-  transition: transform 0.6s ease-out, opacity 0.6s ease;
-}
-
-.slide-down-enter-from {
-  transform: translateY(-100vh);
-  opacity: 0;
-}
-.slide-down-leave-to {
-    transform: translateY(-100vh);
-    opacity: 0;
-}
-
-
-.slide-right-enter-active,
-.slide-right-leave-active {
-  transition: transform 0.4s ease-out;
-}
-
-.slide-right-enter-from,
-.slide-right-leave-to {
-  transform: translateX(100%);
 }
 </style>
