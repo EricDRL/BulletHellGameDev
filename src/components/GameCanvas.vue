@@ -11,6 +11,7 @@
     </video>
 
     <canvas ref="canvas" :width="width" :height="height"></canvas>
+    <canvas ref="collisionCanvas" :width="width" :height="height" style="display: none;"></canvas>
 
     <transition name="fade">
       <div v-if="estado === 'menu'" class="main-menu">
@@ -148,14 +149,17 @@
     </transition>
   </div>
 </template>
-
 <script>
 import { carregarSprites } from '../utils/carregarSprites.js';
 import { carregarFundos } from '../utils/carregarFundos.js';
 import { drawImage } from '../utils/drawImage.js';
-import { zonasPorFase } from '../utils/zonasPorFase.js';
-import { atualizarZonasDeColisao, verificarColisaoDeProjetil } from '../utils/colisao.js';
-import { verificarTeclaPressionada } from '../utils/verificarTeclaPressionada.js';
+// import { zonasPorFase } from '../utils/zonasPorFase.js';
+// REMOVIDO: Não precisamos mais deste arquivo
+// import { atualizarZonasDeColisao } from '../utils/colisao.js';
+// REMOVIDO: Não precisamos mais desta função
+// NOVO: Importa as novas funções de colisão por pixel e a colisão de projétil com player
+import { verificarColisaoDePixel, verificarColisaoDeProjetilComPlayer } from '../utils/colisao.js';
+
 import { gerarInimigosPorFase } from '../utils/gerarInimigosPorFase.js';
 import { gerarBoss } from '../utils/gerarBoss.js';
 import { atirarProjeteis } from '../utils/atirarProjeteis.js';
@@ -164,7 +168,7 @@ export default {
   name: "GameCanvas",
   data() {
     return {
-      zonasDeColisao: [],
+      // zonasDeColisao: [], // REMOVIDO: Não precisamos mais de zonas estáticas
       fundos: [],
       fundoAtual: null,
       width: window.innerWidth,
@@ -270,6 +274,25 @@ export default {
       countdownValue: 3,
       countdownIntervalId: null,
       faseAtualDoJogo: 1,
+
+      // NOVO: Adicionado para o canvas de colisão
+      collisionCanvas: null,
+      collisionCtx: null,
+
+      // NOVO: Imagens de colisão
+      colisaoImages: {
+        colisao1: null, // Para a Fase 2
+        colisao2: null, // Para a Fase 5
+        colisao3: null, // Para a Fase 1
+        colisao4: null, // Para a Fase 4
+      },
+      // Mapeamento de fase para o nome da imagem de colisão
+      faseColisaoMap: {
+        1: 'colisao3',
+        2: 'colisao1',
+        4: 'colisao4',
+        5: 'colisao2',
+      },
     };
   },
 
@@ -281,12 +304,41 @@ export default {
   },
 
   mounted() {
-    Promise.all([carregarSprites(), carregarFundos()])
+    // NOVO: Função para carregar as imagens de colisão
+    const loadCollisionImages = () => {
+      const promises = [];
+      for (const key in this.colisaoImages) {
+        if (Object.hasOwnProperty.call(this.colisaoImages, key)) {
+          const img = new Image();
+          img.src = new URL(`../assets/background/${key}.png`, import.meta.url).href;
+          promises.push(new Promise((resolve, reject) => {
+            img.onload = () => {
+              this.colisaoImages[key] = img;
+              resolve();
+            };
+            img.onerror = (e) => {
+              console.error(`Erro ao carregar imagem de colisão ${key}.png:`, e);
+              reject(e);
+            };
+          }));
+        }
+      }
+      return Promise.all(promises);
+    };
+    // MODIFICADO: Inclui o carregamento das imagens de colisão no Promise.all
+    Promise.all([carregarSprites(), carregarFundos(), loadCollisionImages()])
       .then(([sprites, fundos]) => {
         this.imagens = sprites;
         this.fundos = fundos;
         this.fundoAtual = fundos[0];
-        console.log("Todas as imagens (sprites e fundos) carregadas com sucesso!");
+        console.log("Todas as imagens (sprites, fundos e colisões) carregadas com sucesso!");
+
+        // NOVO: Inicializa o canvas de colisão
+        this.collisionCanvas = this.$refs.collisionCanvas;
+        this.collisionCtx = this.collisionCanvas.getContext('2d', { willReadFrequently: true }); // willReadFrequently para melhor performance de getImageData
+        // Redimensiona o canvas de colisão para corresponder ao canvas principal
+        this.collisionCanvas.width = this.width;
+        this.collisionCanvas.height = this.height;
 
         // Adiciona a imagem do boss dormindo
         this.imagens.boss_sleeping = new Image();
@@ -302,9 +354,7 @@ export default {
         this.bgMusic = new Audio(new URL('../assets/audio/background_music.mp4', import.meta.url).href);
         this.bgMusic.loop = true;
         this.bgMusic.volume = this.volumeMusica / 100;
-
         this.bgMusic.play().catch(e => console.warn("Erro ao iniciar música de fundo:", e));
-
         const startMusicOnInteraction = () => {
           if (this.bgMusic && this.bgMusic.paused) {
             this.bgMusic.play().catch(e => console.warn("Erro ao tentar tocar música após interação:", e));
@@ -322,6 +372,22 @@ export default {
   },
 
   methods: {
+    // NOVO: Método para configurar o canvas de colisão com a imagem correta
+    setupCollisionCanvas(fase) {
+      const collisionImageName = this.faseColisaoMap[fase];
+      const collisionImage = this.colisaoImages[collisionImageName];
+
+      if (this.collisionCtx && collisionImage) {
+        this.collisionCtx.clearRect(0, 0, this.width, this.height);
+        this.collisionCtx.drawImage(collisionImage, 0, 0, this.width, this.height);
+        // console.log(`Canvas de colisão configurado para fase ${fase} com imagem ${collisionImageName}.`);
+      } else if (this.collisionCtx) {
+        // Limpa o canvas de colisão se não houver imagem específica para a fase (ex: fase 3)
+        this.collisionCtx.clearRect(0, 0, this.width, this.height);
+        // console.log(`Canvas de colisão limpo para fase ${fase}.`);
+      }
+    },
+
     iniciarOuContinuarJogo() {
       if (!this.historinhaJaVista) {
         this.estado = "historinha";
@@ -473,12 +539,16 @@ export default {
       this.pontosSalvos = this.pontos;
       this.nivel = novaFase;
       this.faseAtualDoJogo = novaFase;
-      this.zonasDeColisao = atualizarZonasDeColisao(this.nivel, zonasPorFase());
+      this.projectiles = []; // Clear projectiles from previous phase [cite: 88]
+      // this.zonasDeColisao = atualizarZonasDeColisao(this.nivel, zonasPorFase()); // REMOVIDO: Não usa mais zonas estáticas
+      this.setupCollisionCanvas(this.nivel);
+      // NOVO: Desenha a imagem de colisão da nova fase
       this.pontos += 25;
-      
       this.velocidadeProjeteis = this.velocidadeProjeteisPorFase[this.nivel];
+      // Updated player position for phase 5 [cite: 23]
       if (this.nivel === 5) {
-        this.projectiles = [];
+        this.player.x = 220;
+        this.player.y = this.height / 2;
       }
       this.setupInimigos();
       this.estado = "jogando";
@@ -491,9 +561,18 @@ export default {
       this.nivel = faseParaIniciar;
       this.faseAtualDoJogo = faseParaIniciar;
       this.velocidadeProjeteis = this.velocidadeProjeteisPorFase[faseParaIniciar];
-      this.player.x = this.width / 2;
-      this.player.y = this.height / 2;
-      this.zonasDeColisao = atualizarZonasDeColisao(this.nivel, zonasPorFase());
+      // Update player position for phase 5 when starting gameplay [cite: 23]
+      if (this.faseAtualDoJogo === 5) {
+        this.player.x = 220;
+        this.player.y = this.height / 2;
+      } else {
+        this.player.x = this.width / 2;
+        this.player.y = this.height / 2;
+      }
+      // this.zonasDeColisao = atualizarZonasDeColisao(this.nivel, zonasPorFase());
+      // REMOVIDO: Não usa mais zonas estáticas
+      this.setupCollisionCanvas(this.nivel);
+      // NOVO: Desenha a imagem de colisão da fase atual
       this.setupInimigos();
       this.$nextTick(() => {
         this.setupControles();
@@ -526,13 +605,20 @@ export default {
         this.velocidadeProjeteis = this.velocidadeProjeteisPorFase[this.faseAtualDoJogo];
         this.fundoAtual = this.fundos[this.faseAtualDoJogo - 1] || this.fundos[0];
 
-        this.player.x = this.width / 2;
-        this.player.y = this.height / 2;
+        // Updated player position for phase 5 on respawn [cite: 23]
+        if (this.faseAtualDoJogo === 5) {
+          this.player.x = 220;
+          this.player.y = this.height / 2;
+        } else {
+          this.player.x = this.width / 2;
+          this.player.y = this.height / 2;
+        }
         this.projectiles = [];
         this.powerUps = [];
         this.slowAtivo = false;
 
         this.setupInimigos();
+        this.setupCollisionCanvas(this.faseAtualDoJogo); // NOVO: Redesenha o canvas de colisão ao renascer
         this.iniciarTimer();
         this.iniciarLoop();
       }, 500);
@@ -545,7 +631,8 @@ export default {
       const volumeMusicaTemp = this.volumeMusica;
       const bgMusicTemp = this.bgMusic;
       const cutsceneFase3JaVistaTemp = this.cutsceneFase3JaVista;
-
+      // NOVO: Salva as imagens de colisão temporariamente
+      const colisaoImagesTemp = this.colisaoImages;
       this.limparTimers();
       Object.assign(this.$data, this.$options.data.call(this));
       this.historinhaJaVista = historinhaJaVistaTemp;
@@ -554,6 +641,8 @@ export default {
       this.volumeMusica = volumeMusicaTemp;
       this.bgMusic = bgMusicTemp;
       this.cutsceneFase3JaVista = cutsceneFase3JaVistaTemp;
+      // NOVO: Restaura as imagens de colisão
+      this.colisaoImages = colisaoImagesTemp;
       this.nivel = 1;
       this.faseAtualDoJogo = 1;
       this.velocidadeProjeteis = this.velocidadeProjeteisPorFase[1];
@@ -568,6 +657,8 @@ export default {
         }
       }
       this.fundoAtual = this.fundos[this.nivel - 1] || this.fundos[0];
+      this.setupCollisionCanvas(this.faseAtualDoJogo);
+      // NOVO: Configura o canvas de colisão no reset
     },
 
     limparTimers() {
@@ -682,16 +773,12 @@ export default {
       }, 300);
       clearInterval(this.projectileSpawnInterval);
       
-      // Adiciona um atraso de 2 segundos antes de começar a atirar
-      setTimeout(() => {
-        // Só inicia o intervalo se o jogo ainda estiver no estado 'jogando'
-        if(this.estado !== 'jogando') return;
+      // Removed 2 second delay before enemies start firing [cite: 139]
+      this.projectileSpawnInterval = setInterval(() => {
+        if (this.estado !== "jogando" || this.inGameMenuOpen) return;
 
-        this.projectileSpawnInterval = setInterval(() => {
-          if (this.estado !== "jogando" || this.inGameMenuOpen) return;
-
-          if (this.faseAtualDoJogo < 5) {
-            this.inimigos.forEach(inimigo => {
+        if (this.faseAtualDoJogo < 5) {
+          this.inimigos.forEach(inimigo => {
               atirarProjeteis({
                 atirador: inimigo,
                 player: this.player,
@@ -712,8 +799,6 @@ export default {
             }, { velocidadeMultiplicador: 2, width: this.projectileSize, height: this.projectileSize });
           }
         }, 700);
-      }, 2000);
-      // Atraso de 2000ms (2 segundos)
 
       cancelAnimationFrame(this.animationId);
       this.animate(ctx);
@@ -734,16 +819,43 @@ export default {
       }
 
       const speed = 5;
-      const nextPositions = {
-        up: { x: this.player.x, y: this.player.y - speed },
-        down: { x: this.player.x, y: this.player.y + speed },
-        left: { x: this.player.x - speed, y: this.player.y },
-        right: { x: this.player.x + speed, y: this.player.y },
-      };
-      verificarTeclaPressionada(this.keysPressed, this.zonasDeColisao, nextPositions, this.player, speed);
+      const playerRadius = this.player.hitboxRadius;
+      let newPlayerX = this.player.x;
+      let newPlayerY = this.player.y;
+      // Calcular novas posições baseadas nas teclas pressionadas
+      if (this.keysPressed['w'] || this.keysPressed['W']) {
+        newPlayerY -= speed;
+      }
+      if (this.keysPressed['s'] || this.keysPressed['S']) {
+        newPlayerY += speed;
+      }
+      if (this.keysPressed['a'] || this.keysPressed['A']) {
+        newPlayerX -= speed;
+      }
+      if (this.keysPressed['d'] || this.keysPressed['D']) {
+        newPlayerX += speed;
+      }
+
+      // NOVO: Verificar colisão de pixel para a nova posição do jogador
+      const isCollidingWithWalls = verificarColisaoDePixel(
+        this.collisionCtx,
+        newPlayerX,
+        newPlayerY,
+        playerRadius,
+        this.width,
+        this.height
+      );
+      // Atualizar a posição do jogador SOMENTE se não houver colisão
+      if (!isCollidingWithWalls) {
+        this.player.x = newPlayerX;
+        this.player.y = newPlayerY;
+      }
+
+      // Manter jogador dentro dos limites da tela (sempre bom ter, mesmo com colisão de pixel)
       const metadePlayer = this.player.size / 2;
       this.player.x = Math.max(metadePlayer, Math.min(this.width - metadePlayer, this.player.x));
       this.player.y = Math.max(metadePlayer, Math.min(this.height - metadePlayer, this.player.y));
+
       ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
       ctx.font = "bold 24px 'Press Start 2P', cursive";
       ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
@@ -779,7 +891,8 @@ export default {
       }
       if (!this.boss) return;
       // Usa a imagem normal ou a de dormir com base no estado
-      const bossImage = this.bossState === 'sleeping' ? this.imagens.boss_sleeping : this.imagens.boss;
+      const bossImage = this.bossState === 'sleeping' ?
+        this.imagens.boss_sleeping : this.imagens.boss;
 
       if (bossImage) {
         drawImage(ctx, bossImage, this.boss.x, this.boss.y, this.boss.size, this.boss.size, 0);
@@ -803,7 +916,6 @@ export default {
         }, 5000); // 5 segundos de descanso
 
       }, 15000);
-      // 15 segundos de ataque
     },
 
     processarInimigos(ctx) {
@@ -828,7 +940,8 @@ export default {
           return false;
         }
 
-        if (verificarColisaoDeProjetil(p.x, p.y, p.r, this.player.x, this.player.y, this.player.hitboxRadius)) {
+        // MODIFICADO: Usa a função de colisão de projétil com o player
+        if (verificarColisaoDeProjetilComPlayer(p.x, p.y, p.r, this.player.x, this.player.y, this.player.hitboxRadius)) {
           this.vidas--;
           if (this.vidas <= 0) {
             this.estado = "morte";
@@ -837,6 +950,13 @@ export default {
           return false;
         }
 
+        // NOVO: Colisão de projéteis com as paredes (opcional, adicionei para exemplo)
+        // Se desejar que projéteis também colidam com as paredes, descomente o bloco abaixo.
+        // if (verificarColisaoDePixel(this.collisionCtx, p.x, p.y, p.r, this.width, this.height)) {
+        //   return false;
+        // Remove o projétil se colidir com a parede
+        // }
+        
         p.rotation = (p.rotation || 0) + 0.05;
         if (p.img) {
           drawImage(ctx, p.img, p.x, p.y, p.width, p.height, p.rotation);
@@ -850,7 +970,7 @@ export default {
       this.powerUps = this.powerUps.filter((pu) => {
         pu.y += 2;
 
-        if (verificarColisaoDeProjetil(pu.x, pu.y, pu.r, this.player.x, this.player.y, this.player.hitboxRadius)) {
+        if (verificarColisaoDeProjetilComPlayer(pu.x, pu.y, pu.r, this.player.x, this.player.y, this.player.hitboxRadius)) {
           this.coletarPowerUp(pu);
           return false;
         }
@@ -936,7 +1056,6 @@ export default {
 
     pularFase() {
       if (this.nivel >= 5) return;
-
       this.inGameMenuOpen = false;
       // Pausa a música para não tocar sobre o vídeo da cutscene
       if (this.bgMusic) {
@@ -995,7 +1114,7 @@ export default {
   height: 100vh;
   object-fit: cover;
   z-index: -1;
-  /* Posiciona o vídeo atrás do canvas */
+/* Posiciona o vídeo atrás do canvas */
 }
 
 canvas {
@@ -1004,7 +1123,8 @@ canvas {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: transparent; /* Garante que o canvas seja transparente */
+  background: transparent;
+/* Garante que o canvas seja transparente */
   z-index: 0;
 }
 
@@ -1033,15 +1153,16 @@ canvas {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 50px rgba(255, 0, 0, 0.2);
   animation: fadeInScale 0.7s ease-out forwards;
   border: 2px solid #5a0000;
-  width: 90%; /* Adicionado para ocupar mais espaço horizontal */
+  width: 90%;
+/* Adicionado para ocupar mais espaço horizontal */
   max-width: 800px;
-  /* Aumentado o limite de largura */
+/* Aumentado o limite de largura */
 }
 
 .game-logo {
   width: 90%;
   max-width: 650px;
-  /* Aumentado o tamanho máximo do logo */
+/* Aumentado o tamanho máximo do logo */
   margin-bottom: 40px;
   filter: drop-shadow(0 0 15px rgba(255, 50, 50, 0.7)) brightness(1.1);
   animation: logoPulse 2s infinite alternate ease-in-out;
@@ -1049,10 +1170,10 @@ canvas {
 
 @keyframes logoPulse {
   0% { transform: scale(1);
-  filter: drop-shadow(0 0 15px rgba(255, 50, 50, 0.7));
- }
+    filter: drop-shadow(0 0 15px rgba(255, 50, 50, 0.7));
+  }
   100% { transform: scale(1.03);
-  filter: drop-shadow(0 0 25px rgba(255, 0, 0, 0.9)); }
+    filter: drop-shadow(0 0 25px rgba(255, 0, 0, 0.9)); }
 }
 
 .button-group {
@@ -1060,7 +1181,8 @@ canvas {
   flex-direction: column;
   gap: 20px;
   width: 100%;
-  max-width: 450px; /* Aumentado o tamanho máximo dos botões */
+  max-width: 450px;
+/* Aumentado o tamanho máximo dos botões */
 }
 
 .menu-button {
@@ -1353,7 +1475,8 @@ canvas {
   flex-direction: column;
   gap: 15px;
   width: 100%;
-  margin-top: auto; /* Empurra os botões para o final */
+  margin-top: auto;
+/* Empurra os botões para o final */
   padding-bottom: 30px;
 }
 
@@ -1470,10 +1593,11 @@ canvas {
 }
 
 @keyframes countdown-pulse {
-  0% { transform: scale(1); }
+  0% { transform: scale(1);
+}
   50% { transform: scale(1.1); }
   100% { transform: scale(1);
-  }
+}
 }
 
 @keyframes fadeInScale {
