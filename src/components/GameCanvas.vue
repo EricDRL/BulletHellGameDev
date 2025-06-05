@@ -122,6 +122,33 @@
 
     <transition name="fade">
       <div v-if="estado === 'jogando'" class="in-game-ui">
+<<<<<<< HEAD
+      <!-- HUD do jogador -->
+    <div class="game-hud">
+      <div class="hud-container">
+        <div class="hud-item">
+          <span class="hud-label">Pontos:</span>
+          <span class="hud-value">{{ pontos }}</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">Fase:</span>
+          <span class="hud-value">{{ faseAtualDoJogo }}</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">Vida:</span>
+          <div class="health-bar-container">
+            <div class="health-bar" :style="{ width: (vidas/3)*100 + '%' }"></div>
+          </div>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">Tempo:</span>
+          <span class="hud-value">{{ tempo }}s</span>
+        </div>
+      </div>
+    </div>
+    <!-- FIM DO HUD -->
+=======
+>>>>>>> 058f8f2bd59cd1ddcaf18b823207bb47a77622c0
         <button class="hamburger-button" @click="toggleGameMenu">
           ☰
         </button>
@@ -856,6 +883,8 @@ export default {
       this.player.x = Math.max(metadePlayer, Math.min(this.width - metadePlayer, this.player.x));
       this.player.y = Math.max(metadePlayer, Math.min(this.height - metadePlayer, this.player.y));
 
+<<<<<<< HEAD
+=======
       ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
       ctx.font = "bold 24px 'Press Start 2P', cursive";
       ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
@@ -870,6 +899,7 @@ export default {
       ctx.shadowBlur = 0;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;
+>>>>>>> 058f8f2bd59cd1ddcaf18b823207bb47a77622c0
       if (this.imagens.player) {
         drawImage(ctx, this.imagens.player, this.player.x, this.player.y, this.player.size, this.player.size);
       }
@@ -1610,4 +1640,78 @@ canvas {
     transform: scale(1);
   }
 }
+<<<<<<< HEAD
+
+/* ESTILOS DO HUD */
+.game-hud {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.hud-container {
+  background-color: rgba(0, 0, 0, 0.7);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 12px 15px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  font-family: 'Press Start 2P', cursive;
+}
+
+.hud-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 0.8em;
+  color: white;
+  text-shadow: 1px 1px 2px black;
+}
+
+.hud-item:last-child {
+  margin-bottom: 0;
+}
+
+.hud-label {
+  min-width: 70px;
+  color: #ffcc00;
+}
+
+.hud-value {
+  margin-left: 10px;
+}
+
+.health-bar-container {
+  flex-grow: 1;
+  height: 12px;
+  background-color: rgba(70, 70, 70, 0.7);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-left: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+}
+
+.health-bar {
+  height: 100%;
+  background-color: #ff3333;
+  background-image: linear-gradient(to right, #ff0000, #ff6666);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .hud-item {
+    font-size: 0.7em;
+  }
+  
+  .hud-label {
+    min-width: 60px;
+  }
+  
+  .health-bar-container {
+    height: 10px;
+  }
+}
+/* FIM DOS ESTILOS DO HUD */
 </style>
