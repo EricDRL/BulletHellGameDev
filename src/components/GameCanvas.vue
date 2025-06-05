@@ -122,6 +122,7 @@
 
     <transition name="fade">
       <div v-if="estado === 'jogando'" class="in-game-ui">
+<<<<<<< HEAD
       <!-- HUD do jogador -->
     <div class="game-hud">
       <div class="hud-container">
@@ -146,6 +147,8 @@
       </div>
     </div>
     <!-- FIM DO HUD -->
+=======
+>>>>>>> 058f8f2bd59cd1ddcaf18b823207bb47a77622c0
         <button class="hamburger-button" @click="toggleGameMenu">
           ☰
         </button>
@@ -880,6 +883,23 @@ export default {
       this.player.x = Math.max(metadePlayer, Math.min(this.width - metadePlayer, this.player.x));
       this.player.y = Math.max(metadePlayer, Math.min(this.height - metadePlayer, this.player.y));
 
+<<<<<<< HEAD
+=======
+      ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+      ctx.font = "bold 24px 'Press Start 2P', cursive";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
+      ctx.shadowBlur = 5;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+      ctx.fillText(`Tempo: ${this.tempo}s`, 20, 30);
+      ctx.fillText(`Pontos: ${this.pontos}`, 20, 60);
+      ctx.fillText(`Fase: ${this.faseAtualDoJogo}`, 20, 90);
+      ctx.fillText(`Vidas: ${this.vidas}`, 20, 120);
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+>>>>>>> 058f8f2bd59cd1ddcaf18b823207bb47a77622c0
       if (this.imagens.player) {
         drawImage(ctx, this.imagens.player, this.player.x, this.player.y, this.player.size, this.player.size);
       }
@@ -1620,6 +1640,7 @@ canvas {
     transform: scale(1);
   }
 }
+<<<<<<< HEAD
 
 /* ESTILOS DO HUD */
 .game-hud {
@@ -1693,5 +1714,4 @@ canvas {
   }
 }
 /* FIM DOS ESTILOS DO HUD */
-
 </style>
