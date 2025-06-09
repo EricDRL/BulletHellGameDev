@@ -247,7 +247,7 @@ export default {
       bossState: 'attacking',
       bossTimers: { attack: null, rest: null },
       // ### ALTERADO: Tamanho do jogador e hitbox reduzidos ###
-      player: { x: window.innerWidth / 2, y: window.innerHeight / 2, size: 90, hitboxRadius: 30 },
+      player: { x: window.innerWidth / 2, y: window.innerHeight / 2, size: 150, hitboxRadius: 30 },
       // ### ALTERADO: Tamanho dos projéteis reduzido ###
       projectileSize: 40,
       videoIndex: 0,
@@ -288,7 +288,7 @@ export default {
       cutsceneFase3JaVista: false,
       videoMorte: new URL('../assets/videos/videomorte.mp4', import.meta.url).href,
       videoFundoFase5: new URL('../assets/videos/fundo_fase5.mp4', import.meta.url).href,
-      volumeMusica: 50,
+      volumeMusica: 5,
       inGameMenuOpen: false,
       bgMusic: null,
       videosHistorinha: [
@@ -366,7 +366,7 @@ export default {
         this.imagens.boss_sleeping.onload = () => console.log("Imagem do boss_sleeping carregada!");
         this.imagens.boss_sleeping.onerror = (e) => console.error("Erro ao carregar a imagem do boss_sleeping:", e);
 
-        this.bgMusic = new Audio(new URL('../assets/audio/background_music.mp4', import.meta.url).href);
+        this.bgMusic = new Audio(new URL('../assets/audio/background_music.mp3', import.meta.url).href);
         this.bgMusic.loop = true; this.bgMusic.volume = this.volumeMusica / 100;
         this.bgMusic.play().catch(e => console.warn("Música de fundo bloqueada pelo navegador:", e));
 
@@ -718,7 +718,7 @@ export default {
     },
     processarInimigos(ctx) {
       this.inimigos.forEach((inimigo, index) => {
-        const spriteIndex = (index % 5) + 1; const img = this.imagens['inimigo' + spriteIndex];
+        const spriteIndex = (index % 6) + 1; const img = this.imagens['inimigo' + spriteIndex];
         if (img) { drawImage(ctx, img, inimigo.x, inimigo.y, inimigo.size, inimigo.size, 0); }
       });
     },
