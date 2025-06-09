@@ -17,7 +17,6 @@
       <div v-if="estado === 'menu'" class="main-menu">
         <div class="menu-content">
           <img src="../assets/LogoMenu.png" class="game-logo" alt="LOGO" />
-
           <div class="button-group">
             <button class="menu-button" @click="iniciarOuContinuarJogo">
               Iniciar Jogo
@@ -67,6 +66,16 @@
     </transition>
 
     <transition name="fade">
+      <div v-if="estado === 'cutsceneFinal'" class="historinha" @click="avancarVideoFinal">
+        <video ref="videoPlayerFinal" :src="videosFinais[currentCutsceneFinalIndex]" autoplay muted playsinline @ended="avancarVideoFinal"
+          class="video-player"></video>
+        <button class="skip-intro-button" @click.stop="pularCutsceneFinal">
+          Pular
+        </button>
+      </div>
+    </transition>
+
+    <transition name="fade">
       <div v-if="estado === 'countdown'" class="countdown-screen">
         <h1 class="countdown-text">{{ countdownValue }}</h1>
       </div>
@@ -77,6 +86,25 @@
         <video ref="videoMortePlayer" :src="videoMorte" autoplay muted playsinline @ended="renascer"
           class="video-player"></video>
       </div>
+    </transition>
+
+    <transition name="fade-slow">
+        <div v-if="estado === 'fadeParaFinal'" class="sombra-degrade"></div>
+    </transition>
+
+    <transition name="fade">
+        <div v-if="estado === 'telaFinal'" class="tela-final">
+            <div class="tela-final-content">
+                <h2 class="screen-title">Você Venceu!</h2>
+                <div class="final-stats">
+                    <p>Pontuação Total: <span>{{ pontos }}</span></p>
+                    <p>Tempo de Jogo: <span>{{ tempoFinal }}s</span></p>
+                </div>
+                <button class="menu-button" @click="voltarAoMenuPrincipal">
+                    Voltar ao Menu
+                </button>
+            </div>
+        </div>
     </transition>
 
     <transition name="slide-up">
@@ -91,7 +119,6 @@
               <span>{{ volumeMusica }}%</span>
             </div>
           </div>
-
           <div class="option-group">
             <h3>Controles</h3>
             <ul class="controls-list">
@@ -122,33 +149,33 @@
 
     <transition name="fade">
       <div v-if="estado === 'jogando'" class="in-game-ui">
-<<<<<<< HEAD
-      <!-- HUD do jogador -->
-    <div class="game-hud">
-      <div class="hud-container">
-        <div class="hud-item">
-          <span class="hud-label">Pontos:</span>
-          <span class="hud-value">{{ pontos }}</span>
-        </div>
-        <div class="hud-item">
-          <span class="hud-label">Fase:</span>
-          <span class="hud-value">{{ faseAtualDoJogo }}</span>
-        </div>
-        <div class="hud-item">
-          <span class="hud-label">Vida:</span>
-          <div class="health-bar-container">
-            <div class="health-bar" :style="{ width: (vidas/3)*100 + '%' }"></div>
+        <div class="game-hud">
+          <div class="hud-container">
+            <div class="hud-item">
+              <span class="hud-label">Pontos:</span>
+              <span class="hud-value">{{ pontos }}</span>
+            </div>
+            <div class="hud-item">
+              <span class="hud-label">Fase:</span>
+              <span class="hud-value">{{ faseAtualDoJogo }}</span>
+            </div>
+            <div class="hud-item">
+              <span class="hud-label">Vida:</span>
+              <div class="health-bar-container">
+                <div class="health-bar" :style="{ width: (vidas/3)*100 + '%' }"></div>
+              </div>
+            </div>
+            <div class="hud-item">
+              <span class="hud-label">Tempo:</span>
+              <span class="hud-value">{{ tempo }}s</span>
+            </div>
           </div>
         </div>
-        <div class="hud-item">
-          <span class="hud-label">Tempo:</span>
-          <span class="hud-value">{{ tempo }}s</span>
+
+        <div v-if="faseAtualDoJogo === 5" class="fase5-barra-container">
+            <div class="fase5-barra-progresso" :style="{ width: fase5Progresso + '%' }"></div>
         </div>
-      </div>
-    </div>
-    <!-- FIM DO HUD -->
-=======
->>>>>>> 058f8f2bd59cd1ddcaf18b823207bb47a77622c0
+
         <button class="hamburger-button" @click="toggleGameMenu">
           ☰
         </button>
@@ -176,17 +203,12 @@
     </transition>
   </div>
 </template>
+
 <script>
 import { carregarSprites } from '../utils/carregarSprites.js';
 import { carregarFundos } from '../utils/carregarFundos.js';
 import { drawImage } from '../utils/drawImage.js';
-// import { zonasPorFase } from '../utils/zonasPorFase.js';
-// REMOVIDO: Não precisamos mais deste arquivo
-// import { atualizarZonasDeColisao } from '../utils/colisao.js';
-// REMOVIDO: Não precisamos mais desta função
-// NOVO: Importa as novas funções de colisão por pixel e a colisão de projétil com player
 import { verificarColisaoDePixel, verificarColisaoDeProjetilComPlayer } from '../utils/colisao.js';
-
 import { gerarInimigosPorFase } from '../utils/gerarInimigosPorFase.js';
 import { gerarBoss } from '../utils/gerarBoss.js';
 import { atirarProjeteis } from '../utils/atirarProjeteis.js';
@@ -195,7 +217,6 @@ export default {
   name: "GameCanvas",
   data() {
     return {
-      // zonasDeColisao: [], // REMOVIDO: Não precisamos mais de zonas estáticas
       fundos: [],
       fundoAtual: null,
       width: window.innerWidth,
@@ -204,43 +225,31 @@ export default {
       projectiles: [],
       powerUps: [],
       inimigos: [],
-      estado: "menu", // "menu", "historinha", "jogando", "morte", "opcoes", "creditos", "cutsceneFase", "cutsceneFase3", "countdown"
+      estado: "menu", // "menu", "historinha", "jogando", "morte", "opcoes", "creditos", "cutsceneFase", "cutsceneFase3", "countdown", "fadeParaFinal", "cutsceneFinal", "telaFinal"
       animationId: null,
       projectileInterval: null,
       projectileSpawnInterval: null,
       tempoInterval: null,
       keysPressed: {},
-      tempo: 0,
+      tempo: 0, // Tempo por fase, reseta ao morrer
       pontos: 0,
       pontosSalvos: 0,
       nivel: 1,
-      velocidadeProjeteis: 3,
-      velocidadeProjeteisPorFase: {
-        1: 3,
-        2: 4,
-        3: 5,
-        4: 6,
-        5: 7,
-      },
+      // ### ALTERADO: Velocidade dos projéteis da Fase 5 aumentada ###
+      velocidadeProjeteisPorFase: { 1: 3, 2: 4, 3: 5, 4: 6, 5: 9 },
       vidas: 3,
       slowAtivo: false,
       slowTimeoutId: null,
       trocaFaseDelay: false,
       boss: null,
       bossDirecao: 1,
-      bossDirecaoX: 1, // Direção horizontal do Boss
-      bossState: 'attacking', // "attacking" ou "sleeping"
-      bossTimers: { // Agrupa os timers do boss
-        attack: null,
-        rest: null,
-      },
-      player: {
-        x: window.innerWidth / 2,
-        y: window.innerHeight / 2,
-        size: 120,
-        hitboxRadius: 40
-      },
-      projectileSize: 48,
+      bossDirecaoX: 1,
+      bossState: 'attacking',
+      bossTimers: { attack: null, rest: null },
+      // ### ALTERADO: Tamanho do jogador e hitbox reduzidos ###
+      player: { x: window.innerWidth / 2, y: window.innerHeight / 2, size: 90, hitboxRadius: 30 },
+      // ### ALTERADO: Tamanho dos projéteis reduzido ###
+      projectileSize: 40,
       videoIndex: 0,
       historinhaJaVista: false,
       currentCutsceneFaseIndex: 0,
@@ -261,18 +270,14 @@ export default {
         new URL('../assets/videos/video27.mp4', import.meta.url).href,
         new URL('../assets/videos/video28.mp4', import.meta.url).href,
         new URL('../assets/videos/video29.mp4', import.meta.url).href,
+        new URL('../assets/videos/video30.mp4', import.meta.url).href,
       ],
       cutsceneFaseMap: {
         2: { startIndex: 0, endIndex: 3 },
         4: { startIndex: 4, endIndex: 7 },
-        5: { startIndex: 8, endIndex: 14 },
+        5: { startIndex: 8, endIndex: 15 },
       },
-      cutscenesFaseJaVistas: {
-        2: false,
-        3: false,
-        4: false,
-        5: false,
-      },
+      cutscenesFaseJaVistas: { 2: false, 3: false, 4: false, 5: false },
       currentCutsceneFase3Index: 0,
       videosFase3: [
         new URL('../assets/videos/video15.mp4', import.meta.url).href,
@@ -282,56 +287,56 @@ export default {
       ],
       cutsceneFase3JaVista: false,
       videoMorte: new URL('../assets/videos/videomorte.mp4', import.meta.url).href,
-      videoFundoFase5: new URL('../assets/videos/fundo_fase5.mp4', import.meta.url).href, // Adicione o caminho real do seu vídeo
+      videoFundoFase5: new URL('../assets/videos/fundo_fase5.mp4', import.meta.url).href,
       volumeMusica: 50,
       inGameMenuOpen: false,
       bgMusic: null,
       videosHistorinha: [
-        new URL('../assets/videos/video1.mp4', import.meta.url).href,
-        new URL('../assets/videos/video2.mp4', import.meta.url).href,
-        new URL('../assets/videos/video3.mp4', import.meta.url).href,
-        new URL('../assets/videos/video4.mp4', import.meta.url).href,
-        new URL('../assets/videos/video5.mp4', import.meta.url).href,
-        new URL('../assets/videos/video6.mp4', import.meta.url).href,
-        new URL('../assets/videos/video7.mp4', import.meta.url).href,
-        new URL('../assets/videos/video8.mp4', import.meta.url).href,
-        new URL('../assets/videos/video9.mp4', import.meta.url).href,
-        new URL('../assets/videos/video10.mp4', import.meta.url).href,
+        new URL('../assets/videos/video1.mp4', import.meta.url).href, new URL('../assets/videos/video2.mp4', import.meta.url).href,
+        new URL('../assets/videos/video3.mp4', import.meta.url).href, new URL('../assets/videos/video4.mp4', import.meta.url).href,
+        new URL('../assets/videos/video5.mp4', import.meta.url).href, new URL('../assets/videos/video6.mp4', import.meta.url).href,
+        new URL('../assets/videos/video7.mp4', import.meta.url).href, new URL('../assets/videos/video8.mp4', import.meta.url).href,
+        new URL('../assets/videos/video9.mp4', import.meta.url).href, new URL('../assets/videos/video10.mp4', import.meta.url).href,
       ],
       countdownValue: 3,
       countdownIntervalId: null,
       faseAtualDoJogo: 1,
-
-      // NOVO: Adicionado para o canvas de colisão
       collisionCanvas: null,
       collisionCtx: null,
+      colisaoImages: { colisao1: null, colisao2: null, colisao3: null, colisao4: null },
+      faseColisaoMap: { 1: 'colisao3', 2: 'colisao1', 4: 'colisao4', 5: 'colisao2' },
 
-      // NOVO: Imagens de colisão
-      colisaoImages: {
-        colisao1: null, // Para a Fase 2
-        colisao2: null, // Para a Fase 5
-        colisao3: null, // Para a Fase 1
-        colisao4: null, // Para a Fase 4
-      },
-      // Mapeamento de fase para o nome da imagem de colisão
-      faseColisaoMap: {
-        1: 'colisao3',
-        2: 'colisao1',
-        4: 'colisao4',
-        5: 'colisao2',
-      },
+      fase5Duracao: 40,
+      fase5Timer: 0,
+      fase5Intervalo: null,
+      tempoFinal: 0,
+      currentCutsceneFinalIndex: 0,
+      videosFinais: [
+        new URL('../assets/videos/video31.mp4', import.meta.url).href,
+        new URL('../assets/videos/video32.mp4', import.meta.url).href,
+        new URL('../assets/videos/video33.mp4', import.meta.url).href,
+        new URL('../assets/videos/video34.mp4', import.meta.url).href,
+        new URL('../assets/videos/video35.mp4', import.meta.url).href,
+        new URL('../assets/videos/video36.mp4', import.meta.url).href,
+        new URL('../assets/videos/video37.mp4', import.meta.url).href,
+      ],
+      // ### ADICIONADO: Variáveis para o tempo total de jogo ###
+      tempoTotalDeJogo: 0,
+      tempoTotalInterval: null,
     };
   },
 
   computed: {
     showPhase5Background() {
-      // Esta propriedade computada controla a visibilidade do vídeo de fundo
       return this.faseAtualDoJogo === 5 && (this.estado === 'jogando' || this.estado === 'countdown');
+    },
+    fase5Progresso() {
+        if (this.fase5Duracao === 0) return 0;
+        return (this.fase5Timer / this.fase5Duracao) * 100;
     }
   },
 
   mounted() {
-    // NOVO: Função para carregar as imagens de colisão
     const loadCollisionImages = () => {
       const promises = [];
       for (const key in this.colisaoImages) {
@@ -339,52 +344,35 @@ export default {
           const img = new Image();
           img.src = new URL(`../assets/background/${key}.png`, import.meta.url).href;
           promises.push(new Promise((resolve, reject) => {
-            img.onload = () => {
-              this.colisaoImages[key] = img;
-              resolve();
-            };
-            img.onerror = (e) => {
-              console.error(`Erro ao carregar imagem de colisão ${key}.png:`, e);
-              reject(e);
-            };
+            img.onload = () => { this.colisaoImages[key] = img; resolve(); };
+            img.onerror = (e) => { console.error(`Erro ao carregar imagem de colisão ${key}.png:`, e); reject(e); };
           }));
         }
       }
       return Promise.all(promises);
     };
-    // MODIFICADO: Inclui o carregamento das imagens de colisão no Promise.all
+
     Promise.all([carregarSprites(), carregarFundos(), loadCollisionImages()])
       .then(([sprites, fundos]) => {
-        this.imagens = sprites;
-        this.fundos = fundos;
-        this.fundoAtual = fundos[0];
-        console.log("Todas as imagens (sprites, fundos e colisões) carregadas com sucesso!");
+        this.imagens = sprites; this.fundos = fundos; this.fundoAtual = fundos[0];
+        console.log("Todos os recursos carregados!");
 
-        // NOVO: Inicializa o canvas de colisão
         this.collisionCanvas = this.$refs.collisionCanvas;
-        this.collisionCtx = this.collisionCanvas.getContext('2d', { willReadFrequently: true }); // willReadFrequently para melhor performance de getImageData
-        // Redimensiona o canvas de colisão para corresponder ao canvas principal
-        this.collisionCanvas.width = this.width;
-        this.collisionCanvas.height = this.height;
+        this.collisionCtx = this.collisionCanvas.getContext('2d', { willReadFrequently: true });
+        this.collisionCanvas.width = this.width; this.collisionCanvas.height = this.height;
 
-        // Adiciona a imagem do boss dormindo
         this.imagens.boss_sleeping = new Image();
         this.imagens.boss_sleeping.src = new URL('../assets/sprites/cartman2.png', import.meta.url).href;
-        this.imagens.boss_sleeping.onload = () => {
-            console.log("Imagem do boss_sleeping carregada!");
-        };
-        this.imagens.boss_sleeping.onerror = (e) => {
-            console.error("Erro ao carregar a imagem do boss_sleeping:", e);
-        };
-
+        this.imagens.boss_sleeping.onload = () => console.log("Imagem do boss_sleeping carregada!");
+        this.imagens.boss_sleeping.onerror = (e) => console.error("Erro ao carregar a imagem do boss_sleeping:", e);
 
         this.bgMusic = new Audio(new URL('../assets/audio/background_music.mp4', import.meta.url).href);
-        this.bgMusic.loop = true;
-        this.bgMusic.volume = this.volumeMusica / 100;
-        this.bgMusic.play().catch(e => console.warn("Erro ao iniciar música de fundo:", e));
+        this.bgMusic.loop = true; this.bgMusic.volume = this.volumeMusica / 100;
+        this.bgMusic.play().catch(e => console.warn("Música de fundo bloqueada pelo navegador:", e));
+
         const startMusicOnInteraction = () => {
           if (this.bgMusic && this.bgMusic.paused) {
-            this.bgMusic.play().catch(e => console.warn("Erro ao tentar tocar música após interação:", e));
+            this.bgMusic.play().catch(e => console.warn("Erro ao tocar música após interação:", e));
           }
           window.removeEventListener('click', startMusicOnInteraction);
           window.removeEventListener('keydown', startMusicOnInteraction);
@@ -392,710 +380,423 @@ export default {
         window.addEventListener('click', startMusicOnInteraction);
         window.addEventListener('keydown', startMusicOnInteraction);
       })
-      .catch(error => {
-        console.error("Erro ao carregar recursos do jogo:", error);
-        alert("Não foi possível carregar os recursos do jogo. Por favor, recarregue a página.");
-      });
+      .catch(error => { console.error("Erro ao carregar recursos:", error); });
   },
 
   methods: {
-    // NOVO: Método para configurar o canvas de colisão com a imagem correta
     setupCollisionCanvas(fase) {
       const collisionImageName = this.faseColisaoMap[fase];
       const collisionImage = this.colisaoImages[collisionImageName];
-
       if (this.collisionCtx && collisionImage) {
         this.collisionCtx.clearRect(0, 0, this.width, this.height);
         this.collisionCtx.drawImage(collisionImage, 0, 0, this.width, this.height);
-        // console.log(`Canvas de colisão configurado para fase ${fase} com imagem ${collisionImageName}.`);
       } else if (this.collisionCtx) {
-        // Limpa o canvas de colisão se não houver imagem específica para a fase (ex: fase 3)
         this.collisionCtx.clearRect(0, 0, this.width, this.height);
-        // console.log(`Canvas de colisão limpo para fase ${fase}.`);
       }
     },
-
     iniciarOuContinuarJogo() {
       if (!this.historinhaJaVista) {
-        this.estado = "historinha";
-        this.videoIndex = 0;
-        this.$nextTick(() => {
-          if (this.$refs.videoPlayer) this.$refs.videoPlayer.play();
-        });
+        this.estado = "historinha"; this.videoIndex = 0;
+        this.$nextTick(() => { if (this.$refs.videoPlayer) this.$refs.videoPlayer.play(); });
       } else {
         this.iniciarGameplay(this.faseAtualDoJogo);
       }
     },
-
     avancarVideoHistorinha() {
       if (this.videoIndex < this.videosHistorinha.length - 1) {
         this.videoIndex++;
       } else {
-        this.historinhaJaVista = true;
-        this.iniciarGameplay(this.faseAtualDoJogo);
+        this.historinhaJaVista = true; this.iniciarGameplay(this.faseAtualDoJogo);
       }
     },
-
     pularVideoHistorinha() {
-      this.historinhaJaVista = true;
-      this.iniciarGameplay(this.faseAtualDoJogo);
+      this.historinhaJaVista = true; this.iniciarGameplay(this.faseAtualDoJogo);
     },
-
     mostrarCutsceneFase(proximaFase) {
         const cutsceneInfo = this.cutsceneFaseMap[proximaFase];
         if (cutsceneInfo && !this.cutscenesFaseJaVistas[proximaFase]) {
-            this.estado = "cutsceneFase";
-            this.currentCutsceneFaseIndex = cutsceneInfo.startIndex;
-            this.nextFaseAfterCutscene = proximaFase;
-            this.limparTimers();
+            this.estado = "cutsceneFase"; this.currentCutsceneFaseIndex = cutsceneInfo.startIndex;
+            this.nextFaseAfterCutscene = proximaFase; this.limparTimers();
             this.$nextTick(() => {
                 const videoPlayerFase = this.$refs.videoPlayerFase;
-                if (videoPlayerFase) {
-                    videoPlayerFase.load();
-                    videoPlayerFase.play().catch(e => console.warn("Erro ao tocar vídeo da cutscene de fase:", e));
-                }
+                if (videoPlayerFase) { videoPlayerFase.load(); videoPlayerFase.play().catch(e => console.warn("Erro ao tocar vídeo da cutscene:", e)); }
             });
         } else {
             this.iniciarContagemRegressiva(proximaFase);
         }
     },
-
     avancarVideoCutsceneFase() {
         const cutsceneInfo = this.cutsceneFaseMap[this.nextFaseAfterCutscene];
         if (cutsceneInfo && this.currentCutsceneFaseIndex < cutsceneInfo.endIndex) {
             this.currentCutsceneFaseIndex++;
             this.$nextTick(() => {
                 const videoPlayerFase = this.$refs.videoPlayerFase;
-                if (videoPlayerFase) {
-                    videoPlayerFase.load();
-                    videoPlayerFase.play().catch(e => console.warn("Erro ao tocar o próximo vídeo da cutscene de fase:", e));
-                }
+                if (videoPlayerFase) { videoPlayerFase.load(); videoPlayerFase.play().catch(e => console.warn("Erro ao tocar vídeo da cutscene:", e)); }
             });
         } else {
             this.cutscenesFaseJaVistas[this.nextFaseAfterCutscene] = true;
             this.iniciarContagemRegressiva(this.nextFaseAfterCutscene);
         }
     },
-
     pularCutsceneFase() {
       const videoPlayerFase = this.$refs.videoPlayerFase;
-      if (videoPlayerFase) {
-        videoPlayerFase.pause();
-        videoPlayerFase.currentTime = 0;
-      }
+      if (videoPlayerFase) { videoPlayerFase.pause(); videoPlayerFase.currentTime = 0; }
       this.cutscenesFaseJaVistas[this.nextFaseAfterCutscene] = true;
       this.iniciarContagemRegressiva(this.nextFaseAfterCutscene);
     },
-
     iniciarCutsceneFase3() {
-      this.estado = "cutsceneFase3";
-      this.currentCutsceneFase3Index = 0;
-      this.limparTimers();
+      this.estado = "cutsceneFase3"; this.currentCutsceneFase3Index = 0; this.limparTimers();
       this.$nextTick(() => {
         const videoPlayerFase3 = this.$refs.videoPlayerFase3;
-        if (videoPlayerFase3) {
-          videoPlayerFase3.play().catch(e => console.warn("Erro ao tocar vídeo da cutscene da Fase 3:", e));
-        }
+        if (videoPlayerFase3) { videoPlayerFase3.play().catch(e => console.warn("Erro ao tocar vídeo da cutscene da Fase 3:", e)); }
       });
     },
-
     avancarVideoCutsceneFase3() {
       if (this.currentCutsceneFase3Index < this.videosFase3.length - 1) {
         this.currentCutsceneFase3Index++;
         this.$nextTick(() => {
           const videoPlayerFase3 = this.$refs.videoPlayerFase3;
-          if (videoPlayerFase3) {
-            videoPlayerFase3.load();
-            videoPlayerFase3.play().catch(e => console.warn("Erro ao tocar o próximo vídeo da cutscene da Fase 3:", e));
-          }
+          if (videoPlayerFase3) { videoPlayerFase3.load(); videoPlayerFase3.play().catch(e => console.warn("Erro ao tocar vídeo da cutscene da Fase 3:", e)); }
         });
       } else {
-        this.cutsceneFase3JaVista = true;
-        this.iniciarContagemRegressiva(3);
+        this.cutsceneFase3JaVista = true; this.iniciarContagemRegressiva(3);
       }
     },
-
     pularCutsceneFase3() {
       const videoPlayerFase3 = this.$refs.videoPlayerFase3;
-      if (videoPlayerFase3) {
-        videoPlayerFase3.pause();
-        videoPlayerFase3.currentTime = 0;
-      }
-      this.cutsceneFase3JaVista = true;
-      this.iniciarContagemRegressiva(3);
+      if (videoPlayerFase3) { videoPlayerFase3.pause(); videoPlayerFase3.currentTime = 0; }
+      this.cutsceneFase3JaVista = true; this.iniciarContagemRegressiva(3);
     },
-
+    iniciarCutsceneFinal() {
+        this.estado = 'cutsceneFinal';
+        this.currentCutsceneFinalIndex = 0;
+        this.bgMusic.pause();
+        this.$nextTick(() => {
+            const videoPlayerFinal = this.$refs.videoPlayerFinal;
+            if (videoPlayerFinal) { videoPlayerFinal.play().catch(e => console.warn("Erro ao tocar vídeo final:", e)); }
+        });
+    },
+    avancarVideoFinal() {
+        if (this.currentCutsceneFinalIndex < this.videosFinais.length - 1) {
+            this.currentCutsceneFinalIndex++;
+            this.$nextTick(() => {
+                const videoPlayerFinal = this.$refs.videoPlayerFinal;
+                if (videoPlayerFinal) { videoPlayerFinal.load(); videoPlayerFinal.play().catch(e => console.warn("Erro ao tocar próximo vídeo final:", e)); }
+            });
+        } else {
+            this.estado = 'telaFinal';
+        }
+    },
+    pularCutsceneFinal() {
+        const videoPlayerFinal = this.$refs.videoPlayerFinal;
+        if (videoPlayerFinal) { videoPlayerFinal.pause(); videoPlayerFinal.currentTime = 0; }
+        this.estado = 'telaFinal';
+    },
     iniciarContagemRegressiva(proximaFaseAlvo) {
       this.fundoAtual = this.fundos[proximaFaseAlvo - 1] || this.fundos[0];
       this.estado = 'countdown';
-
-      // Força o desenho do novo fundo no canvas
       const canvas = this.$refs.canvas;
       if (canvas && this.fundoAtual) {
           const ctx = canvas.getContext('2d');
-          ctx.clearRect(0, 0, this.width, this.height); // Limpa a tela
-          // Desenha o fundo da próxima fase (a menos que seja a fase 5, que usa vídeo)
-          if (proximaFaseAlvo !== 5) {
-            ctx.drawImage(this.fundoAtual, 0, 0, this.width, this.height);
-          }
+          ctx.clearRect(0, 0, this.width, this.height);
+          if (proximaFaseAlvo !== 5) { ctx.drawImage(this.fundoAtual, 0, 0, this.width, this.height); }
       }
-
       this.countdownValue = 3;
-      if (this.countdownIntervalId) {
-          clearInterval(this.countdownIntervalId);
-      }
-
+      if (this.countdownIntervalId) { clearInterval(this.countdownIntervalId); }
       this.countdownIntervalId = setInterval(() => {
         if (this.countdownValue > 1) {
           this.countdownValue--;
         } else if (this.countdownValue === 1) {
           this.countdownValue = 'JÁ!';
           setTimeout(() => {
-            clearInterval(this.countdownIntervalId);
-            this.countdownIntervalId = null;
+            clearInterval(this.countdownIntervalId); this.countdownIntervalId = null;
             this.avancarParaProximaFase(proximaFaseAlvo);
           }, 800);
         } else {
-          clearInterval(this.countdownIntervalId);
-          this.countdownIntervalId = null;
+          clearInterval(this.countdownIntervalId); this.countdownIntervalId = null;
         }
       }, 1000);
     },
-
     avancarParaProximaFase(novaFase) {
-      this.pontosSalvos = this.pontos;
-      this.nivel = novaFase;
-      this.faseAtualDoJogo = novaFase;
-      this.projectiles = []; // Clear projectiles from previous phase [cite: 88]
-      // this.zonasDeColisao = atualizarZonasDeColisao(this.nivel, zonasPorFase()); // REMOVIDO: Não usa mais zonas estáticas
-      this.setupCollisionCanvas(this.nivel);
-      // NOVO: Desenha a imagem de colisão da nova fase
-      this.pontos += 25;
+      this.pontosSalvos = this.pontos; this.nivel = novaFase; this.faseAtualDoJogo = novaFase;
+      this.projectiles = []; this.setupCollisionCanvas(this.nivel); this.pontos += 25;
       this.velocidadeProjeteis = this.velocidadeProjeteisPorFase[this.nivel];
-      // Updated player position for phase 5 [cite: 23]
-      if (this.nivel === 5) {
-        this.player.x = 220;
-        this.player.y = this.height / 2;
-      }
-      this.setupInimigos();
-      this.estado = "jogando";
-      this.iniciarTimer();
-      this.iniciarLoop();
+      if (this.nivel === 5) { this.player.x = 220; this.player.y = this.height / 2; }
+      this.setupInimigos(); this.estado = "jogando";
+      this.iniciarTimer(); this.iniciarLoop();
+      if (this.nivel === 5) { this.iniciarLogicaFase5(); }
     },
-
     iniciarGameplay(faseParaIniciar) {
-      this.estado = "jogando";
-      this.nivel = faseParaIniciar;
-      this.faseAtualDoJogo = faseParaIniciar;
+      this.estado = "jogando"; this.nivel = faseParaIniciar; this.faseAtualDoJogo = faseParaIniciar;
       this.velocidadeProjeteis = this.velocidadeProjeteisPorFase[faseParaIniciar];
-      // Update player position for phase 5 when starting gameplay [cite: 23]
-      if (this.faseAtualDoJogo === 5) {
-        this.player.x = 220;
-        this.player.y = this.height / 2;
-      } else {
-        this.player.x = this.width / 2;
-        this.player.y = this.height / 2;
-      }
-      // this.zonasDeColisao = atualizarZonasDeColisao(this.nivel, zonasPorFase());
-      // REMOVIDO: Não usa mais zonas estáticas
-      this.setupCollisionCanvas(this.nivel);
-      // NOVO: Desenha a imagem de colisão da fase atual
-      this.setupInimigos();
+      if (this.faseAtualDoJogo === 5) { this.player.x = 220; this.player.y = this.height / 2; }
+      else { this.player.x = this.width / 2; this.player.y = this.height / 2; }
+      this.setupCollisionCanvas(this.nivel); this.setupInimigos();
       this.$nextTick(() => {
         this.setupControles();
         this.iniciarTimer();
         this.iniciarLoop();
+        // ### ADICIONADO: Inicia o timer TOTAL apenas uma vez ###
+        if (faseParaIniciar === 1 && !this.tempoTotalInterval) {
+          this.iniciarTimerTotal();
+        }
       });
+      if (this.faseAtualDoJogo === 5) { this.iniciarLogicaFase5(); }
     },
-
     renascer() {
       if (this.estado !== 'morte') return;
       setTimeout(() => {
-        this.estado = 'jogando';
-        const video = this.$refs.videoMortePlayer;
-        if (video) {
-          video.pause();
-          video.currentTime = 0;
-        }
-        this.limparTimers();
-
-        this.vidas = 3;
-        if (this.faseAtualDoJogo === 1) {
-          this.pontos = 0;
-          this.pontosSalvos = 0;
-          this.nivel = 1;
-        } else {
-          this.pontos = this.pontosSalvos;
-        }
-        this.tempo = 0;
-
+        this.estado = 'jogando'; const video = this.$refs.videoMortePlayer;
+        if (video) { video.pause(); video.currentTime = 0; }
+        this.limparTimers(); this.vidas = 3;
+        if (this.faseAtualDoJogo === 1) { this.pontos = 0; this.pontosSalvos = 0; this.nivel = 1; }
+        else { this.pontos = this.pontosSalvos; }
+        this.tempo = 0; // O tempo da fase reinicia
         this.velocidadeProjeteis = this.velocidadeProjeteisPorFase[this.faseAtualDoJogo];
         this.fundoAtual = this.fundos[this.faseAtualDoJogo - 1] || this.fundos[0];
-
-        // Updated player position for phase 5 on respawn [cite: 23]
-        if (this.faseAtualDoJogo === 5) {
-          this.player.x = 220;
-          this.player.y = this.height / 2;
-        } else {
-          this.player.x = this.width / 2;
-          this.player.y = this.height / 2;
-        }
-        this.projectiles = [];
-        this.powerUps = [];
-        this.slowAtivo = false;
-
-        this.setupInimigos();
-        this.setupCollisionCanvas(this.faseAtualDoJogo); // NOVO: Redesenha o canvas de colisão ao renascer
-        this.iniciarTimer();
-        this.iniciarLoop();
+        if (this.faseAtualDoJogo === 5) { this.player.x = 220; this.player.y = this.height / 2; this.fase5Timer = 0; }
+        else { this.player.x = this.width / 2; this.player.y = this.height / 2; }
+        this.projectiles = []; this.powerUps = []; this.slowAtivo = false;
+        this.setupInimigos(); this.setupCollisionCanvas(this.faseAtualDoJogo);
+        this.iniciarTimer(); this.iniciarLoop();
+        if (this.faseAtualDoJogo === 5) { this.iniciarLogicaFase5(); }
       }, 500);
     },
-
     resetarEstadoDoJogo() {
-      const historinhaJaVistaTemp = this.historinhaJaVista;
-      const imagensTemp = this.imagens;
-      const fundosTemp = this.fundos;
-      const volumeMusicaTemp = this.volumeMusica;
-      const bgMusicTemp = this.bgMusic;
-      const cutsceneFase3JaVistaTemp = this.cutsceneFase3JaVista;
-      // NOVO: Salva as imagens de colisão temporariamente
+      const historinhaJaVistaTemp = this.historinhaJaVista; const imagensTemp = this.imagens;
+      const fundosTemp = this.fundos; const volumeMusicaTemp = this.volumeMusica;
+      const bgMusicTemp = this.bgMusic; const cutsceneFase3JaVistaTemp = this.cutsceneFase3JaVista;
       const colisaoImagesTemp = this.colisaoImages;
       this.limparTimers();
+      // ### ADICIONADO: Limpa o timer total ao voltar para o menu ###
+      if (this.tempoTotalInterval) { clearInterval(this.tempoTotalInterval); this.tempoTotalInterval = null; }
       Object.assign(this.$data, this.$options.data.call(this));
-      this.historinhaJaVista = historinhaJaVistaTemp;
-      this.imagens = imagensTemp;
-      this.fundos = fundosTemp;
-      this.volumeMusica = volumeMusicaTemp;
-      this.bgMusic = bgMusicTemp;
-      this.cutsceneFase3JaVista = cutsceneFase3JaVistaTemp;
-      // NOVO: Restaura as imagens de colisão
-      this.colisaoImages = colisaoImagesTemp;
-      this.nivel = 1;
-      this.faseAtualDoJogo = 1;
-      this.velocidadeProjeteis = this.velocidadeProjeteisPorFase[1];
-      this.pontos = 0;
-      this.pontosSalvos = 0;
+      this.historinhaJaVista = historinhaJaVistaTemp; this.imagens = imagensTemp;
+      this.fundos = fundosTemp; this.volumeMusica = volumeMusicaTemp;
+      this.bgMusic = bgMusicTemp; this.cutsceneFase3JaVista = cutsceneFase3JaVistaTemp;
+      this.colisaoImages = colisaoImagesTemp; this.nivel = 1; this.faseAtualDoJogo = 1;
+      this.velocidadeProjeteis = this.velocidadeProjeteisPorFase[1]; this.pontos = 0; this.pontosSalvos = 0;
       this.cutscenesFaseJaVistas = { 2: false, 3: false, 4: false, 5: false };
       this.cutsceneFase3JaVista = false;
-      if (this.bgMusic) {
-        this.bgMusic.volume = this.volumeMusica / 100;
-        if (this.bgMusic.paused) {
-          this.bgMusic.play().catch(e => console.warn("Erro ao tentar tocar música após reset:", e));
-        }
-      }
+      if (this.bgMusic) { this.bgMusic.volume = this.volumeMusica / 100; if (this.bgMusic.paused) { this.bgMusic.play().catch(e => console.warn("Erro ao tocar música:", e)); } }
       this.fundoAtual = this.fundos[this.nivel - 1] || this.fundos[0];
       this.setupCollisionCanvas(this.faseAtualDoJogo);
-      // NOVO: Configura o canvas de colisão no reset
     },
-
     limparTimers() {
-      if (this.tempoInterval) {
-        clearInterval(this.tempoInterval);
-        this.tempoInterval = null;
-      }
-      if (this.projectileInterval) {
-        clearInterval(this.projectileInterval);
-        this.projectileInterval = null;
-      }
-      if (this.projectileSpawnInterval) {
-        clearInterval(this.projectileSpawnInterval);
-        this.projectileSpawnInterval = null;
-      }
-      if (this.slowTimeoutId) {
-        clearTimeout(this.slowTimeoutId);
-        this.slowTimeoutId = null;
-      }
-       if (this.bossTimers.attack) {
-        clearTimeout(this.bossTimers.attack);
-        this.bossTimers.attack = null;
-      }
-      if (this.bossTimers.rest) {
-        clearTimeout(this.bossTimers.rest);
-        this.bossTimers.rest = null;
-      }
-      cancelAnimationFrame(this.animationId);
-      this.animationId = null;
-      if (this.countdownIntervalId) {
-          clearInterval(this.countdownIntervalId);
-          this.countdownIntervalId = null;
-      }
+      if (this.tempoInterval) { clearInterval(this.tempoInterval); this.tempoInterval = null; }
+      if (this.projectileInterval) { clearInterval(this.projectileInterval); this.projectileInterval = null; }
+      if (this.projectileSpawnInterval) { clearInterval(this.projectileSpawnInterval); this.projectileSpawnInterval = null; }
+      if (this.slowTimeoutId) { clearTimeout(this.slowTimeoutId); this.slowTimeoutId = null; }
+      if (this.bossTimers.attack) { clearTimeout(this.bossTimers.attack); this.bossTimers.attack = null; }
+      if (this.bossTimers.rest) { clearTimeout(this.bossTimers.rest); this.bossTimers.rest = null; }
+      cancelAnimationFrame(this.animationId); this.animationId = null;
+      if (this.countdownIntervalId) { clearInterval(this.countdownIntervalId); this.countdownIntervalId = null; }
+      if (this.fase5Intervalo) { clearInterval(this.fase5Intervalo); this.fase5Intervalo = null; }
     },
-
     setupControles() {
-      if (this._handleKeyDown) {
-        window.removeEventListener("keydown", this._handleKeyDown);
-      }
-      if (this._handleKeyUp) {
-        window.removeEventListener("keyup", this._handleKeyUp);
-      }
-
+      if (this._handleKeyDown) { window.removeEventListener("keydown", this._handleKeyDown); }
+      if (this._handleKeyUp) { window.removeEventListener("keyup", this._handleKeyUp); }
       this._handleKeyDown = (e) => { this.keysPressed[e.key] = true; };
       this._handleKeyUp = (e) => { this.keysPressed[e.key] = false; };
-
       window.addEventListener("keydown", this._handleKeyDown);
       window.addEventListener("keyup", this._handleKeyUp);
     },
-
     setupInimigos() {
-      const size = 80;
+      // ### ALTERADO: Tamanho dos inimigos reduzido ###
+      const size = 70;
       const padding = 50;
       if (this.faseAtualDoJogo === 5) {
-        this.inimigos = [];
-        this.boss = gerarBoss(this.width, this.height, 400);
-        this.iniciarCicloBoss(); // Inicia o ciclo de ataque/descanso
+        this.inimigos = []; this.boss = gerarBoss(this.width, this.height, 400); this.iniciarCicloBoss();
       } else {
-        this.boss = null;
-        this.inimigos = gerarInimigosPorFase(this.faseAtualDoJogo, this.width, this.height, size, padding);
+        this.boss = null; this.inimigos = gerarInimigosPorFase(this.faseAtualDoJogo, this.width, this.height, size, padding);
       }
     },
-
+    // ### ADICIONADO: Método para controlar o tempo total de jogo ###
+    iniciarTimerTotal() {
+      if (this.tempoTotalInterval) clearInterval(this.tempoTotalInterval);
+      this.tempoTotalDeJogo = 0;
+      this.tempoTotalInterval = setInterval(() => {
+        // O tempo total só avança se o jogo estiver rodando e não pausado
+        if (this.estado === 'jogando' && !this.inGameMenuOpen) {
+           this.tempoTotalDeJogo++;
+        }
+      }, 1000);
+    },
     iniciarTimer() {
       clearInterval(this.tempoInterval);
       this.tempoInterval = setInterval(() => {
         if (this.estado !== "jogando" || this.inGameMenuOpen) return;
-
         this.tempo++;
-        if (this.tempo % 25 === 0 && this.nivel < 5 && !this.trocaFaseDelay) {
+        if (this.tempo % 25 === 0 && this.nivel < 4 && !this.trocaFaseDelay) {
             this.trocaFaseDelay = true;
-
             setTimeout(() => {
-                if (this.nivel === 1) {
-                    this.mostrarCutsceneFase(this.nivel + 1);
-                } else if (this.nivel === 2 && !this.cutsceneFase3JaVista) {
-                    this.iniciarCutsceneFase3();
-                } else if (this.nivel === 3) {
-                  this.mostrarCutsceneFase(this.nivel + 1);
-                } else if (this.nivel === 4) {
-                    this.mostrarCutsceneFase(this.nivel + 1);
-                }
+                if (this.nivel === 1) { this.mostrarCutsceneFase(this.nivel + 1); }
+                else if (this.nivel === 2 && !this.cutsceneFase3JaVista) { this.iniciarCutsceneFase3(); }
+                else if (this.nivel === 3) { this.mostrarCutsceneFase(this.nivel + 1); }
+                this.trocaFaseDelay = false;
+            }, 3000);
+        } else if (this.tempo > 0 && this.tempo % 25 === 0 && this.nivel === 4 && !this.trocaFaseDelay) {
+            this.trocaFaseDelay = true;
+            setTimeout(() => {
+                this.mostrarCutsceneFase(this.nivel + 1);
                 this.trocaFaseDelay = false;
             }, 3000);
         }
         this.pontos += 10;
       }, 1000);
     },
-
+    iniciarLogicaFase5() {
+        if (this.fase5Intervalo) clearInterval(this.fase5Intervalo);
+        this.fase5Timer = 0;
+        this.fase5Intervalo = setInterval(() => {
+            if (this.estado !== "jogando" || this.inGameMenuOpen) return;
+            if (this.fase5Timer < this.fase5Duracao) {
+                this.fase5Timer++;
+            } else {
+                this.vencerJogo();
+            }
+        }, 1000);
+    },
+    vencerJogo() {
+        this.limparTimers();
+        // ### ALTERADO: Salva o tempo TOTAL, não o da fase ###
+        this.tempoFinal = this.tempoTotalDeJogo;
+        this.estado = 'fadeParaFinal';
+        setTimeout(() => {
+            this.iniciarCutsceneFinal();
+        }, 2000);
+    },
     iniciarLoop() {
-      const canvas = this.$refs.canvas;
-      if (!canvas) {
-        console.error("Canvas não encontrado ao iniciar o loop!");
-        return;
-      }
-      const ctx = canvas.getContext("2d");
+      const canvas = this.$refs.canvas; if (!canvas) return; const ctx = canvas.getContext("2d");
       clearInterval(this.projectileInterval);
       this.projectileInterval = setInterval(() => {
         if (this.estado !== "jogando" || this.inGameMenuOpen) return;
-
-        const spawnChance = Math.random();
-        if (spawnChance < 0.05) {
-          const powerUp = {
-            x: Math.random() * this.width,
-            y: -50,
-            r: 20,
-            type: Math.random() < 0.5 ? "life" : "slow",
-            rotation: 0,
-          };
-          this.powerUps.push(powerUp);
+        if (Math.random() < 0.05) {
+          this.powerUps.push({ x: Math.random() * this.width, y: -50, r: 20, type: Math.random() < 0.5 ? "life" : "slow", rotation: 0 });
         }
       }, 300);
       clearInterval(this.projectileSpawnInterval);
-      
-      // Removed 2 second delay before enemies start firing [cite: 139]
       this.projectileSpawnInterval = setInterval(() => {
         if (this.estado !== "jogando" || this.inGameMenuOpen) return;
-
-        if (this.faseAtualDoJogo < 5) {
-          this.inimigos.forEach(inimigo => {
-              atirarProjeteis({
-                atirador: inimigo,
-                player: this.player,
-                slowAtivo: this.slowAtivo,
-                velocidadeProjeteis: this.velocidadeProjeteis,
-                imagens: this.imagens,
-                projectiles: this.projectiles
-              }, { velocidadeMultiplicador: 1, width: this.projectileSize, height: this.projectileSize });
-            });
-          } else if (this.boss && this.bossState === 'attacking') {
-            atirarProjeteis({
-              atirador: this.boss,
-              player: this.player,
-              slowAtivo: this.slowAtivo,
-              velocidadeProjeteis: this.velocidadeProjeteis,
-              imagens: this.imagens,
-              projectiles: this.projectiles
-            }, { velocidadeMultiplicador: 2, width: this.projectileSize, height: this.projectileSize });
-          }
-        }, 700);
-
-      cancelAnimationFrame(this.animationId);
-      this.animate(ctx);
+        const config = { player: this.player, slowAtivo: this.slowAtivo, velocidadeProjeteis: this.velocidadeProjeteisPorFase[this.faseAtualDoJogo], imagens: this.imagens, projectiles: this.projectiles };
+        if (this.faseAtualDoJogo < 5) { this.inimigos.forEach(inimigo => atirarProjeteis({ ...config, atirador: inimigo }, { velocidadeMultiplicador: 1, width: this.projectileSize, height: this.projectileSize })); }
+        else if (this.boss && this.bossState === 'attacking') { atirarProjeteis({ ...config, atirador: this.boss }, { velocidadeMultiplicador: 2, width: this.projectileSize, height: this.projectileSize }); }
+      }, 700);
+      cancelAnimationFrame(this.animationId); this.animate(ctx);
     },
-
     animate(ctx) {
-      if (this.estado !== "jogando" || this.inGameMenuOpen) {
-        cancelAnimationFrame(this.animationId);
-        return;
-      }
-
+      if (this.estado !== "jogando" || this.inGameMenuOpen) { cancelAnimationFrame(this.animationId); return; }
       ctx.clearRect(0, 0, this.width, this.height);
-      // Desenha o fundo da imagem apenas se NÃO for a fase 5
-      if (this.faseAtualDoJogo !== 5) {
-          if (this.fundoAtual || this.imagens.fundoPadrao) {
-            ctx.drawImage(this.fundoAtual || this.imagens.fundoPadrao, 0, 0, this.width, this.height);
-          }
-      }
-
-      const speed = 5;
-      const playerRadius = this.player.hitboxRadius;
-      let newPlayerX = this.player.x;
-      let newPlayerY = this.player.y;
-      // Calcular novas posições baseadas nas teclas pressionadas
-      if (this.keysPressed['w'] || this.keysPressed['W']) {
-        newPlayerY -= speed;
-      }
-      if (this.keysPressed['s'] || this.keysPressed['S']) {
-        newPlayerY += speed;
-      }
-      if (this.keysPressed['a'] || this.keysPressed['A']) {
-        newPlayerX -= speed;
-      }
-      if (this.keysPressed['d'] || this.keysPressed['D']) {
-        newPlayerX += speed;
-      }
-
-      // NOVO: Verificar colisão de pixel para a nova posição do jogador
-      const isCollidingWithWalls = verificarColisaoDePixel(
-        this.collisionCtx,
-        newPlayerX,
-        newPlayerY,
-        playerRadius,
-        this.width,
-        this.height
-      );
-      // Atualizar a posição do jogador SOMENTE se não houver colisão
-      if (!isCollidingWithWalls) {
-        this.player.x = newPlayerX;
-        this.player.y = newPlayerY;
-      }
-
-      // Manter jogador dentro dos limites da tela (sempre bom ter, mesmo com colisão de pixel)
+      if (this.faseAtualDoJogo !== 5) { if (this.fundoAtual) { ctx.drawImage(this.fundoAtual, 0, 0, this.width, this.height); } }
+      const speed = 5; const playerRadius = this.player.hitboxRadius;
+      let newPlayerX = this.player.x; let newPlayerY = this.player.y;
+      if (this.keysPressed['w'] || this.keysPressed['W']) { newPlayerY -= speed; }
+      if (this.keysPressed['s'] || this.keysPressed['S']) { newPlayerY += speed; }
+      if (this.keysPressed['a'] || this.keysPressed['A']) { newPlayerX -= speed; }
+      if (this.keysPressed['d'] || this.keysPressed['D']) { newPlayerX += speed; }
+      const isCollidingWithWalls = verificarColisaoDePixel(this.collisionCtx, newPlayerX, newPlayerY, playerRadius, this.width, this.height);
+      if (!isCollidingWithWalls) { this.player.x = newPlayerX; this.player.y = newPlayerY; }
       const metadePlayer = this.player.size / 2;
       this.player.x = Math.max(metadePlayer, Math.min(this.width - metadePlayer, this.player.x));
       this.player.y = Math.max(metadePlayer, Math.min(this.height - metadePlayer, this.player.y));
-
-<<<<<<< HEAD
-=======
-      ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-      ctx.font = "bold 24px 'Press Start 2P', cursive";
-      ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
-      ctx.shadowBlur = 5;
-      ctx.shadowOffsetX = 2;
-      ctx.shadowOffsetY = 2;
-      ctx.fillText(`Tempo: ${this.tempo}s`, 20, 30);
-      ctx.fillText(`Pontos: ${this.pontos}`, 20, 60);
-      ctx.fillText(`Fase: ${this.faseAtualDoJogo}`, 20, 90);
-      ctx.fillText(`Vidas: ${this.vidas}`, 20, 120);
-      ctx.shadowColor = "transparent";
-      ctx.shadowBlur = 0;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 0;
->>>>>>> 058f8f2bd59cd1ddcaf18b823207bb47a77622c0
-      if (this.imagens.player) {
-        drawImage(ctx, this.imagens.player, this.player.x, this.player.y, this.player.size, this.player.size);
-      }
-
-      if (this.faseAtualDoJogo < 5) {
-        this.processarInimigos(ctx);
-      } else {
-        this.processarBoss(ctx);
-      }
-
-      this.processarProjetiles(ctx);
-      this.processarPowerUps(ctx);
+      if (this.imagens.player) { drawImage(ctx, this.imagens.player, this.player.x, this.player.y, this.player.size, this.player.size); }
+      if (this.faseAtualDoJogo < 5) { this.processarInimigos(ctx); } else { this.processarBoss(ctx); }
+      this.processarProjetiles(ctx); this.processarPowerUps(ctx);
       this.animationId = requestAnimationFrame(() => this.animate(ctx));
     },
-
     processarBoss(ctx) {
-      if (this.bossState === 'attacking') { // Só move o boss se ele estiver atacando
-        this.moverBoss();
-      }
+      if (this.bossState === 'attacking') { this.moverBoss(); }
       if (!this.boss) return;
-      // Usa a imagem normal ou a de dormir com base no estado
-      const bossImage = this.bossState === 'sleeping' ?
-        this.imagens.boss_sleeping : this.imagens.boss;
-
-      if (bossImage) {
-        drawImage(ctx, bossImage, this.boss.x, this.boss.y, this.boss.size, this.boss.size, 0);
-      }
+      const bossImage = this.bossState === 'sleeping' ? this.imagens.boss_sleeping : this.imagens.boss;
+      if (bossImage) { drawImage(ctx, bossImage, this.boss.x, this.boss.y, this.boss.size, this.boss.size, 0); }
     },
-
+    // ### ALTERADO: Lógica do boss simplificada para não dormir ###
     iniciarCicloBoss() {
       if (!this.boss) return;
-      this.bossState = 'attacking';
-      // Limpa timer anterior para evitar múltiplos ciclos rodando
-      if(this.bossTimers.attack) clearTimeout(this.bossTimers.attack);
-      if(this.bossTimers.rest) clearTimeout(this.bossTimers.rest);
-
-      // Após 15s, o boss vai descansar
-      this.bossTimers.attack = setTimeout(() => {
-        this.bossState = 'sleeping';
-        
-        // Após 5s de descanso, ele volta a atacar
-        this.bossTimers.rest = setTimeout(() => {
-          this.iniciarCicloBoss(); // Reinicia o ciclo
-        }, 5000); // 5 segundos de descanso
-
-      }, 15000);
+      this.bossState = 'attacking'; // Define o estado como 'attacking' permanentemente
+      // A lógica de timers para dormir foi removida.
     },
-
     processarInimigos(ctx) {
       this.inimigos.forEach((inimigo, index) => {
-        const imgSize = inimigo.size;
-        const spriteIndex = (index % 5) + 1;
-        const img = this.imagens['inimigo' + spriteIndex];
-
-        if (img) {
-          drawImage(ctx, img, inimigo.x, inimigo.y, imgSize, imgSize, 0);
-        }
+        const spriteIndex = (index % 5) + 1; const img = this.imagens['inimigo' + spriteIndex];
+        if (img) { drawImage(ctx, img, inimigo.x, inimigo.y, inimigo.size, inimigo.size, 0); }
       });
     },
-
     processarProjetiles(ctx) {
       this.projectiles = this.projectiles.filter((p) => {
-        p.x += p.xVel;
-        p.y += p.yVel;
-
-        const margin = 50;
-        if (p.x < -margin || p.y < -margin || p.x > this.width + margin || p.y > this.height + margin) {
-          return false;
-        }
-
-        // MODIFICADO: Usa a função de colisão de projétil com o player
+        p.x += p.xVel; p.y += p.yVel;
+        if (p.x < -50 || p.y < -50 || p.x > this.width + 50 || p.y > this.height + 50) { return false; }
         if (verificarColisaoDeProjetilComPlayer(p.x, p.y, p.r, this.player.x, this.player.y, this.player.hitboxRadius)) {
           this.vidas--;
-          if (this.vidas <= 0) {
-            this.estado = "morte";
-            this.limparTimers();
-          }
+          if (this.vidas <= 0) { this.estado = "morte"; this.limparTimers(); }
           return false;
         }
-
-        // NOVO: Colisão de projéteis com as paredes (opcional, adicionei para exemplo)
-        // Se desejar que projéteis também colidam com as paredes, descomente o bloco abaixo.
-        // if (verificarColisaoDePixel(this.collisionCtx, p.x, p.y, p.r, this.width, this.height)) {
-        //   return false;
-        // Remove o projétil se colidir com a parede
-        // }
-        
         p.rotation = (p.rotation || 0) + 0.05;
-        if (p.img) {
-          drawImage(ctx, p.img, p.x, p.y, p.width, p.height, p.rotation);
-        }
-
+        if (p.img) { drawImage(ctx, p.img, p.x, p.y, p.width, p.height, p.rotation); }
         return true;
       });
     },
-
     processarPowerUps(ctx) {
       this.powerUps = this.powerUps.filter((pu) => {
         pu.y += 2;
-
         if (verificarColisaoDeProjetilComPlayer(pu.x, pu.y, pu.r, this.player.x, this.player.y, this.player.hitboxRadius)) {
-          this.coletarPowerUp(pu);
-          return false;
+          this.coletarPowerUp(pu); return false;
         }
-
         const img = pu.type === "life" ? this.imagens.vida : this.imagens.slow;
-        const size = 60;
+        // ### ALTERADO: Tamanho dos power-ups reduzido ###
+        const size = 50;
         pu.rotation = (pu.rotation || 0) + 0.03;
-        if (img) {
-          drawImage(ctx, img, pu.x, pu.y, size, size, pu.rotation);
-        }
-
+        if (img) { drawImage(ctx, img, pu.x, pu.y, size, size, pu.rotation); }
         return pu.y <= this.height + 50;
       });
     },
-
     coletarPowerUp(powerUp) {
-      if (powerUp.type === "life") {
-        this.vidas++;
-        this.pontos += 50;
-      } else if (powerUp.type === "slow") {
-        this.slowAtivo = true;
-        this.pontos += 20;
-
-        if (this.slowTimeoutId) {
-          clearTimeout(this.slowTimeoutId);
-        }
-
-        this.slowTimeoutId = setTimeout(() => {
-          this.slowAtivo = false;
-          this.slowTimeoutId = null;
-        }, 5000);
+      if (powerUp.type === "life") { this.vidas++; this.pontos += 50; }
+      else if (powerUp.type === "slow") {
+        this.slowAtivo = true; this.pontos += 20;
+        if (this.slowTimeoutId) { clearTimeout(this.slowTimeoutId); }
+        this.slowTimeoutId = setTimeout(() => { this.slowAtivo = false; this.slowTimeoutId = null; }, 5000);
       }
     },
-
     moverBoss() {
       if (!this.boss) return;
-      // Atualiza as posições X e Y
       this.boss.x += this.bossDirecaoX * (this.boss.velocidade * 0.75);
-      // Movimento horizontal um pouco mais lento
       this.boss.y += this.bossDirecao * this.boss.velocidade;
       const halfSize = this.boss.size / 2;
-
-      // Verifica colisão com as bordas verticais
-      if (this.boss.y + halfSize > this.height - 50 || this.boss.y - halfSize < 50) {
-        this.bossDirecao *= -1;
-      }
-
-      // Verifica colisão com as bordas horizontais
-      if (this.boss.x + halfSize > this.width || this.boss.x - halfSize < 0) {
-        this.bossDirecaoX *= -1;
-      }
+      if (this.boss.y + halfSize > this.height - 50 || this.boss.y - halfSize < 50) { this.bossDirecao *= -1; }
+      if (this.boss.x + halfSize > this.width || this.boss.x - halfSize < 0) { this.bossDirecaoX *= -1; }
     },
-
     sairJogo() {
-      console.log("Saindo do jogo...");
-      alert("O jogo seria fechado aqui! Mas como estamos no navegador, fica por isso mesmo. :)");
+      alert("O jogo seria fechado aqui!");
     },
-
     updateVolume(type, value) {
       if (type === 'musica') {
         this.volumeMusica = parseInt(value);
-        if (this.bgMusic) {
-          this.bgMusic.volume = this.volumeMusica / 100;
-        }
+        if (this.bgMusic) { this.bgMusic.volume = this.volumeMusica / 100; }
       }
     },
-
     toggleGameMenu() {
       this.inGameMenuOpen = !this.inGameMenuOpen;
       if (this.inGameMenuOpen) {
         this.limparTimers();
-        if (this.bgMusic) {
-          this.bgMusic.pause();
-        }
+        if (this.bgMusic) { this.bgMusic.pause(); }
       } else {
         this.iniciarLoop();
         this.iniciarTimer();
-        if (this.bgMusic) {
-          this.bgMusic.play().catch(e => console.warn("Erro ao tentar tocar música ao fechar menu in-game:", e));
+        if (this.bgMusic) { this.bgMusic.play().catch(e => console.warn("Erro ao tentar tocar música ao fechar menu in-game:", e)); }
+        if (this.faseAtualDoJogo === 5) {
+          this.iniciarLogicaFase5();
         }
       }
     },
-
     pularFase() {
       if (this.nivel >= 5) return;
       this.inGameMenuOpen = false;
-      // Pausa a música para não tocar sobre o vídeo da cutscene
       if (this.bgMusic) {
         this.bgMusic.pause();
       }
-
-      // Chama a função que mostra a cutscene e avança para o próximo nível
       this.mostrarCutsceneFase(this.nivel + 1);
     },
-
     voltarAoMenuPrincipal() {
       this.inGameMenuOpen = false;
       setTimeout(() => {
@@ -1144,7 +845,6 @@ export default {
   height: 100vh;
   object-fit: cover;
   z-index: -1;
-/* Posiciona o vídeo atrás do canvas */
 }
 
 canvas {
@@ -1154,7 +854,6 @@ canvas {
   width: 100vw;
   height: 100vh;
   background: transparent;
-/* Garante que o canvas seja transparente */
   z-index: 0;
 }
 
@@ -1184,15 +883,12 @@ canvas {
   animation: fadeInScale 0.7s ease-out forwards;
   border: 2px solid #5a0000;
   width: 90%;
-/* Adicionado para ocupar mais espaço horizontal */
   max-width: 800px;
-/* Aumentado o limite de largura */
 }
 
 .game-logo {
   width: 90%;
   max-width: 650px;
-/* Aumentado o tamanho máximo do logo */
   margin-bottom: 40px;
   filter: drop-shadow(0 0 15px rgba(255, 50, 50, 0.7)) brightness(1.1);
   animation: logoPulse 2s infinite alternate ease-in-out;
@@ -1200,10 +896,10 @@ canvas {
 
 @keyframes logoPulse {
   0% { transform: scale(1);
-    filter: drop-shadow(0 0 15px rgba(255, 50, 50, 0.7));
+  filter: drop-shadow(0 0 15px rgba(255, 50, 50, 0.7));
   }
   100% { transform: scale(1.03);
-    filter: drop-shadow(0 0 25px rgba(255, 0, 0, 0.9)); }
+  filter: drop-shadow(0 0 25px rgba(255, 0, 0, 0.9)); }
 }
 
 .button-group {
@@ -1212,7 +908,6 @@ canvas {
   gap: 20px;
   width: 100%;
   max-width: 450px;
-/* Aumentado o tamanho máximo dos botões */
 }
 
 .menu-button {
@@ -1506,7 +1201,6 @@ canvas {
   gap: 15px;
   width: 100%;
   margin-top: auto;
-/* Empurra os botões para o final */
   padding-bottom: 30px;
 }
 
@@ -1573,7 +1267,6 @@ canvas {
   text-align: left;
 }
 
-/* Animações de transição */
 .fade-enter-active, .fade-leave-active {
   transition: opacity 0.5s ease;
 }
@@ -1623,26 +1316,85 @@ canvas {
 }
 
 @keyframes countdown-pulse {
-  0% { transform: scale(1);
-}
+  0% { transform: scale(1); }
   50% { transform: scale(1.1); }
-  100% { transform: scale(1);
-}
+  100% { transform: scale(1); }
 }
 
 @keyframes fadeInScale {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
 }
-<<<<<<< HEAD
 
-/* ESTILOS DO HUD */
+.fase5-barra-container {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    max-width: 800px;
+    height: 25px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 2px solid #ffcc00;
+    border-radius: 10px;
+    pointer-events: auto;
+    box-shadow: 0 0 15px rgba(255, 204, 0, 0.5);
+}
+.fase5-barra-progresso {
+    height: 100%;
+    background: linear-gradient(90deg, #ffcc00, #ff8800);
+    border-radius: 7px;
+    transition: width 1s linear;
+}
+.sombra-degrade {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: black;
+    z-index: 98;
+}
+.fade-slow-enter-active, .fade-slow-leave-active {
+    transition: opacity 2s ease;
+}
+.fade-slow-enter-from, .fade-slow-leave-to {
+    opacity: 0;
+}
+.tela-final {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.9);
+    z-index: 100;
+}
+.tela-final-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+    background: linear-gradient(145deg, #1a0800, #3a1d00);
+    padding: 50px;
+    border-radius: 20px;
+    border: 2px solid #ffcc00;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 50px rgba(255, 204, 0, 0.3);
+    text-align: center;
+}
+.final-stats p {
+    font-size: 1.5em;
+    color: #eee;
+    margin: 10px 0;
+}
+.final-stats span {
+    color: #ffcc00;
+    font-weight: bold;
+}
+
 .game-hud {
   position: absolute;
   top: 20px;
@@ -1713,5 +1465,4 @@ canvas {
     height: 10px;
   }
 }
-/* FIM DOS ESTILOS DO HUD */
 </style>
