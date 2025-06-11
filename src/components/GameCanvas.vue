@@ -130,22 +130,25 @@
       </div>
     </transition>
 
-    <transition name="slide-down">
-      <div v-if="estado === 'creditos'" class="credits-screen">
-        <div class="credits-content">
-          <h2 class="screen-title">Créditos</h2>
-          <p class="credits-text">
-            <strong>Desenvolvimento do Jogo:</strong> [Seu Nome ou Nome da Equipe]<br>
-            <strong>Conceito e Design:</strong> [Seu Nome ou Nome da Equipe]<br>
-            <strong>Arte e Gráficos:</strong> [Artistas/Ferramentas Utilizadas]<br>
-            <strong>Música e Efeitos Sonoros:</strong> [Músicos/Fontes de Áudio]<br>
-            <strong>Agradecimentos Especiais:</strong><br>
-            Aos nossos professores, à comunidade Vue.js e a todos que nos apoiaram neste projeto!
-          </p>
-          <button class="menu-button back-button" @click="estado = 'menu'">Voltar ao Menu</button>
-        </div>
+<transition name="slide-down">
+  <div v-if="estado === 'creditos'" class="credits-screen">
+    <div class="credits-content">
+      <h2 class="screen-title">Créditos</h2>
+      <div class="credits-names">
+        Bruno Koji<br>
+        Eduardo Iba<br>
+        Eric Leite<br>
+        Gabriel Morais<br>
+        Gustavo Beneton
       </div>
-    </transition>
+      <div class="credits-special">
+        <strong>Agradecimentos Especiais:</strong><br>
+        Aos nossos professores, à comunidade Vue.js e a todos que nos apoiaram neste projeto!
+      </div>
+      <button class="menu-button back-button" @click="estado = 'menu'">Voltar ao Menu</button>
+    </div>
+  </div>
+</transition>
 
     <transition name="fade">
       <div v-if="estado === 'jogando'" class="in-game-ui">
@@ -876,20 +879,20 @@ canvas {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 50px;
+  padding: 20px;
   background: linear-gradient(145deg, #1a0000, #3a0000);
   border-radius: 20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 50px rgba(255, 0, 0, 0.2);
   animation: fadeInScale 0.7s ease-out forwards;
   border: 2px solid #5a0000;
   width: 90%;
-  max-width: 800px;
+  max-width: 1600px;
 }
 
 .game-logo {
-  width: 90%;
-  max-width: 650px;
-  margin-bottom: 40px;
+  width: 75%;
+  max-width: 450px;
+  margin-bottom: 15px;
   filter: drop-shadow(0 0 15px rgba(255, 50, 50, 0.7)) brightness(1.1);
   animation: logoPulse 2s infinite alternate ease-in-out;
 }
@@ -905,14 +908,14 @@ canvas {
 .button-group {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 15px;
   width: 100%;
-  max-width: 450px;
+  max-width: 350px;
 }
 
 .menu-button {
-  padding: 18px 30px;
-  font-size: 1.3em;
+  padding: 10px 15px;
+  font-size: 1em;
   font-weight: bold;
   color: #fff;
   background-color: #550000;
@@ -1017,8 +1020,11 @@ canvas {
 }
 
 .options-content, .credits-content {
+    align-items: center;
+    flex-direction: column;
+    display: flex;
     background: rgba(30, 0, 0, 0.85);
-    padding: 40px;
+    padding: 15px;
     border-radius: 15px;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 0, 0, 0.1);
     border: 2px solid #6a0000;
@@ -1027,9 +1033,30 @@ canvas {
     text-align: center;
 }
 
+.credits-names {
+  margin: 20px 0;
+  line-height: 1.8;
+  font-size: 1.2em;
+  color: #eee;
+}
+
+.credits-special {
+  margin: 30px 0;
+  line-height: 1.6;
+  font-size: 1.1em;
+  color: #ddd;
+  max-width: 80%;
+}
+
+.credits-special strong {
+  color: #ffcc00;
+  display: block;
+  margin-bottom: 10px;
+}
+
 .screen-title {
-  font-size: 3.5em;
-  margin-bottom: 40px;
+  font-size: 1.5em;
+  margin-bottom: 15px;
   color: #ff6666;
   text-shadow: 0 0 15px rgba(255, 100, 100, 0.8);
   letter-spacing: 3px;
@@ -1038,18 +1065,18 @@ canvas {
 
 .option-group {
   background: rgba(40, 0, 0, 0.7);
-  padding: 25px 35px;
+  padding: 15px 20px;
   border-radius: 10px;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
   width: 100%;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
   border: 1px solid #6a0000;
 }
 
 .option-group h3 {
-  font-size: 1.6em;
+  font-size: 1em;
   margin-top: 0;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   color: #ffcc00;
   text-align: center;
   text-shadow: 0 0 5px rgba(255, 204, 0, 0.5);
