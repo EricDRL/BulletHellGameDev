@@ -7,217 +7,179 @@
       loop
       muted
       playsinline
-      class="background-video">
-    </video>
+      class="background-video"
+    ></video>
 
     <canvas ref="canvas" :width="width" :height="height"></canvas>
-    <canvas ref="collisionCanvas" :width="width" :height="height" style="display: none;"></canvas>
+    <canvas
+      ref="collisionCanvas"
+      :width="width"
+      :height="height"
+      style="display: none"
+    ></canvas>
+
+    <div v-if="state === 'menu'" class="main-menu">
+      <Menu :iniciarOuContinuarJogo="iniciarOuContinuarJogo"></Menu>
+    </div>
+
+    <div v-if="state === 'historinha'">
+      <Prologue
+        :videos="videosHistorinha"
+        :index="videoIndex"
+        :avancarVideoHistorinha="avancarVideoHistorinha"
+        :pularVideoHistorinha="pularVideoHistorinha"
+      />
+    </div>
+
+    <div v-if="state === 'cutsceneFase'">
+      <CutScenes
+        :videos="videosDeTransicao"
+        :index="currentCutsceneFaseIndex"
+        :avancarVideoCutsceneFase="avancarVideoCutsceneFase"
+        :pularCutsceneFase="pularCutsceneFase"
+      />
+    </div>
+
+    <div v-if="state === 'cutsceneFase3'">
+      <CutScenes
+        :videos="videosFase3"
+        :index="currentCutsceneFase3Index"
+        :avancarVideoCutsceneFase="avancarVideoCutsceneFase3"
+        :pularCutsceneFase="pularCutsceneFase3"
+      />
+    </div>
+
+    <div v-if="state === 'cutsceneFinal'">
+      <CutScenes
+        :videos="videosFinais"
+        :index="currentCutsceneFinalIndex"
+        :avancarVideoCutsceneFase="avancarVideoFinal"
+        :pularCutsceneFase="pularCutsceneFinal"
+        ref="videoPlayerFinal"
+      />
+    </div>
 
     <transition name="fade">
-      <div v-if="estado === 'menu'" class="main-menu">
-        <div class="menu-content">
-          <img src="../assets/LogoMenu.png" class="game-logo" alt="LOGO" />
-          <div class="button-group">
-            <button class="menu-button" @click="iniciarOuContinuarJogo">
-              Iniciar Jogo
-            </button>
-            <button class="menu-button" @click="estado = 'opcoes'">
-              Opções
-            </button>
-            <button class="menu-button" @click="estado = 'creditos'">
-              Créditos
-            </button>
-            <button class="menu-button" @click="sairJogo">
-              Sair
-            </button>
-          </div>
-        </div>
-      </div>
-    </transition>
-
-    <transition name="fade">
-      <div v-if="estado === 'historinha'" class="historinha" @click="avancarVideoHistorinha">
-        <video ref="videoPlayer" :src="videosHistorinha[videoIndex]" autoplay muted playsinline @ended="avancarVideoHistorinha"
-          class="video-player"></video>
-        <button v-if="videoIndex < videosHistorinha.length - 1" class="skip-intro-button" @click.stop="pularVideoHistorinha">
-          Pular história
-        </button>
-      </div>
-    </transition>
-
-    <transition name="fade">
-      <div v-if="estado === 'cutsceneFase'" class="historinha" @click="avancarVideoCutsceneFase">
-        <video ref="videoPlayerFase" :src="videosDeTransicao[currentCutsceneFaseIndex]" autoplay muted playsinline @ended="avancarVideoCutsceneFase"
-          class="video-player"></video>
-        <button class="skip-intro-button" @click.stop="pularCutsceneFase">
-          Pular História
-        </button>
-      </div>
-    </transition>
-
-    <transition name="fade">
-      <div v-if="estado === 'cutsceneFase3'" class="historinha" @click="avancarVideoCutsceneFase3">
-        <video ref="videoPlayerFase3" :src="videosFase3[currentCutsceneFase3Index]" autoplay muted playsinline @ended="avancarVideoCutsceneFase3"
-          class="video-player"></video>
-        <button class="skip-intro-button" @click.stop="pularCutsceneFase3">
-          Pular História
-        </button>
-      </div>
-    </transition>
-
-    <transition name="fade">
-      <div v-if="estado === 'cutsceneFinal'" class="historinha" @click="avancarVideoFinal">
-        <video ref="videoPlayerFinal" :src="videosFinais[currentCutsceneFinalIndex]" autoplay muted playsinline @ended="avancarVideoFinal"
-          class="video-player"></video>
-        <button class="skip-intro-button" @click.stop="pularCutsceneFinal">
-          Pular
-        </button>
-      </div>
-    </transition>
-
-    <transition name="fade">
-      <div v-if="estado === 'countdown'" class="countdown-screen">
+      <div v-if="state === 'countdown'" class="countdown-screen">
         <h1 class="countdown-text">{{ countdownValue }}</h1>
       </div>
     </transition>
 
-    <transition name="fade">
-      <div v-if="estado === 'morte'" class="gameover-screen" @click="renascer">
-        <video ref="videoMortePlayer" :src="videoMorte" autoplay muted playsinline @ended="renascer"
-          class="video-player"></video>
-      </div>
-    </transition>
+    <div v-if="state === 'morte'">
+      <GameOverScreen :renascer="renascer" />
+    </div>
 
     <transition name="fade-slow">
-        <div v-if="estado === 'fadeParaFinal'" class="sombra-degrade"></div>
+      <div v-if="state === 'fadeParaFinal'" class="sombra-degrade"></div>
     </transition>
 
-    <transition name="fade">
-        <div v-if="estado === 'telaFinal'" class="tela-final">
-            <div class="tela-final-content">
-                <h2 class="screen-title">Você Venceu!</h2>
-                <div class="final-stats">
-                    <p>Pontuação Total: <span>{{ pontos }}</span></p>
-                    <p>Tempo de Jogo: <span>{{ tempoFinal }}s</span></p>
-                </div>
-                <button class="menu-button" @click="voltarAoMenuPrincipal">
-                    Voltar ao Menu
-                </button>
-            </div>
-        </div>
-    </transition>
-
-    <transition name="slide-up">
-      <div v-if="estado === 'opcoes'" class="options-screen">
-        <div class="options-content">
-          <h2 class="screen-title">Opções</h2>
-          <div class="option-group">
-            <h3>Volume da Música</h3>
-            <div class="volume-control">
-              <label for="musicVolume">Volume:</label>
-              <input type="range" id="musicVolume" min="0" max="100" v-model="volumeMusica" @input="updateVolume('musica', $event.target.value)">
-              <span>{{ volumeMusica }}%</span>
-            </div>
-          </div>
-          <div class="option-group">
-            <h3>Controles</h3>
-            <ul class="controls-list">
-              <li>Movimento: <strong>W, A, S, D</strong></li>
-            </ul>
-          </div>
-          <button class="menu-button back-button" @click="estado = 'menu'">Voltar ao Menu</button>
-        </div>
-      </div>
-    </transition>
-
-<transition name="slide-down">
-  <div v-if="estado === 'creditos'" class="credits-screen">
-    <div class="credits-content">
-      <h2 class="screen-title">Créditos</h2>
-      <div class="credits-names">
-        Bruno Koji<br>
-        Eduardo Iba<br>
-        Eric Leite<br>
-        Gabriel Morais<br>
-        Gustavo Beneton
-      </div>
-      <div class="credits-special">
-        <strong>Agradecimentos Especiais:</strong><br>
-        Aos nossos professores, à comunidade Vue.js e a todos que nos apoiaram neste projeto!
-      </div>
-      <button class="menu-button back-button" @click="estado = 'menu'">Voltar ao Menu</button>
+    <div v-if="state === 'telaFinal'" class="tela-final">
+      <WinScreen
+        :pontos="pontos"
+        :tempoFinal="tempoFinal"
+        :voltarAoMenuPrincipal="voltarAoMenuPrincipal"
+      />
     </div>
-  </div>
-</transition>
+
+    <div v-if="state === 'opcoes' || state === 'creditos'">
+      <div class="background-menu"></div>
+    </div>
+
+    <div v-if="state === 'opcoes'" class="options-screen">
+      <OptionsScreen
+        :volumeMusica="volumeMusica"
+        :updateVolume="updateVolume"
+      />
+    </div>
+
+    <div v-if="state === 'creditos'" class="credits-screen">
+      <Credits />
+    </div>
 
     <transition name="fade">
-      <div v-if="estado === 'jogando'" class="in-game-ui">
-        <div class="game-hud">
-          <div class="hud-container">
-            <div class="hud-item">
-              <span class="hud-label">Pontos:</span>
-              <span class="hud-value">{{ pontos }}</span>
-            </div>
-            <div class="hud-item">
-              <span class="hud-label">Fase:</span>
-              <span class="hud-value">{{ faseAtualDoJogo }}</span>
-            </div>
-            <div class="hud-item">
-              <span class="hud-label">Vida:</span>
-              <div class="health-bar-container">
-                <div class="health-bar" :style="{ width: (vidas/3)*100 + '%' }"></div>
-              </div>
-            </div>
-            <div class="hud-item">
-              <span class="hud-label">Tempo:</span>
-              <span class="hud-value">{{ tempo }}s</span>
-            </div>
-          </div>
-        </div>
+      <div v-if="state === 'jogando'" class="in-game-ui">
+        <GameHUD
+          :pontos="pontos"
+          :vidas="vidas"
+          :faseAtualDoJogo="faseAtualDoJogo"
+          :tempo="tempo"
+        />
 
         <div v-if="faseAtualDoJogo === 5" class="fase5-barra-container">
-            <div class="fase5-barra-progresso" :style="{ width: fase5Progresso + '%' }"></div>
+          <div
+            class="fase5-barra-progresso"
+            :style="{ width: fase5Progresso + '%' }"
+          ></div>
         </div>
 
-        <button class="hamburger-button" @click="toggleGameMenu">
-          ☰
-        </button>
-        <transition name="slide-right">
-          <div v-if="inGameMenuOpen" class="in-game-menu">
-            <h3 class="in-game-menu-title">Menu</h3>
-            <div class="option-group-compact">
-              <h3>Volume da Música</h3>
-              <div class="volume-control-compact">
-                <label for="musicVolumeInGame">Volume:</label>
-                <input type="range" id="musicVolumeInGame" min="0" max="100" v-model="volumeMusica" @input="updateVolume('musica', $event.target.value)">
-                <span>{{ volumeMusica }}%</span>
-              </div>
-            </div>
-            <div class="in-game-menu-buttons">
-              <button class="menu-button in-game-button" @click="voltarAoMenuPrincipal">Voltar ao Menu Principal</button>
-              <button v-if="nivel < 5" class="menu-button in-game-button" @click="pularFase">
-                Pular Fase
-              </button>
-              <button class="menu-button in-game-button" @click="toggleGameMenu">Continuar Jogo</button>
-            </div>
-          </div>
-        </transition>
+        <button class="hamburger-button" @click="toggleGameMenu">☰</button>
+        <div v-if="inGameMenuOpen">
+          <SideMenu
+            :nivel="nivel"
+            :toggleGameMenu="toggleGameMenu"
+            :voltarAoMenuPrincipal="voltarAoMenuPrincipal"
+            :pularFase="pularFase"
+            :volumeMusica="volumeMusica"
+            :updateVolume="updateVolume"
+          />
+        </div>
       </div>
     </transition>
   </div>
 </template>
 
 <script>
-import { carregarSprites } from '../utils/carregarSprites.js';
-import { carregarFundos } from '../utils/carregarFundos.js';
-import { drawImage } from '../utils/drawImage.js';
-import { verificarColisaoDePixel, verificarColisaoDeProjetilComPlayer } from '../utils/colisao.js';
-import { gerarInimigosPorFase } from '../utils/gerarInimigosPorFase.js';
-import { gerarBoss } from '../utils/gerarBoss.js';
-import { atirarProjeteis } from '../utils/atirarProjeteis.js';
+import { useState } from "../useState.js";
+import Menu from "./mainMenu.vue";
+import SideMenu from "./sideMenu.vue";
+import WinScreen from "./winScreen.vue";
+import GameOverScreen from "./gameOverScreen.vue";
+import Prologue from "./prologue.vue";
+import Credits from "./creditsScreen.vue";
+import GameHUD from "./gameHUD.vue";
+import CutScenes from "./cutScenes.vue";
+import OptionsScreen from "./optionsScreen.vue";
+import { carregarSprites } from "../utils/carregarSprites.js";
+import { carregarFundos } from "../utils/carregarFundos.js";
+import { drawImage } from "../utils/drawImage.js";
+import {
+  verificarColisaoDePixel,
+  verificarColisaoDeProjetilComPlayer,
+} from "../utils/colisao.js";
+import { gerarInimigosPorFase } from "../utils/gerarInimigosPorFase.js";
+import { gerarBoss } from "../utils/gerarBoss.js";
+import { atirarProjeteis } from "../utils/atirarProjeteis.js";
+import { avancarVideoCutscenes } from "../utils/avancarCutscenes.js";
+import { pularCutscenesVideos } from "../utils/pularCutscenes.js";
+import { iniciarCutsceneVideos } from "../utils/iniciarCutscene.js";
+const {
+  avancarVideoCutscenefase,
+  avancarVideoCutsceneFase3,
+  avancarVideoFinal,
+  avancarVideoHistorinha,
+} = avancarVideoCutscenes();
+const {
+  pularCutsceneFase,
+  pularCutsceneFase3,
+  pularCutsceneFinal,
+  pularVideoHistorinha,
+} = pularCutscenesVideos();
+const { mostrarCutsceneFase, iniciarCutsceneFase3, iniciarCutsceneFinal } =
+  iniciarCutsceneVideos();
 
 export default {
   name: "GameCanvas",
+  components: {
+    WinScreen,
+    OptionsScreen,
+    Credits,
+    GameHUD,
+    Menu,
+    SideMenu,
+    GameOverScreen,
+    Prologue,
+    CutScenes,
+  },
   data() {
     return {
       fundos: [],
@@ -228,7 +190,6 @@ export default {
       projectiles: [],
       powerUps: [],
       inimigos: [],
-      estado: "menu", // "menu", "historinha", "jogando", "morte", "opcoes", "creditos", "cutsceneFase", "cutsceneFase3", "countdown", "fadeParaFinal", "cutsceneFinal", "telaFinal"
       animationId: null,
       projectileInterval: null,
       projectileSpawnInterval: null,
@@ -247,10 +208,15 @@ export default {
       boss: null,
       bossDirecao: 1,
       bossDirecaoX: 1,
-      bossState: 'attacking',
+      bossState: "attacking",
       bossTimers: { attack: null, rest: null },
       // ### ALTERADO: Tamanho do jogador e hitbox reduzidos ###
-      player: { x: window.innerWidth / 2, y: window.innerHeight / 2, size: 150, hitboxRadius: 30 },
+      player: {
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2,
+        size: 150,
+        hitboxRadius: 30,
+      },
       // ### ALTERADO: Tamanho dos projéteis reduzido ###
       projectileSize: 40,
       videoIndex: 0,
@@ -258,22 +224,22 @@ export default {
       currentCutsceneFaseIndex: 0,
       nextFaseAfterCutscene: 0,
       videosDeTransicao: [
-        new URL('../assets/videos/video11.mp4', import.meta.url).href,
-        new URL('../assets/videos/video12.mp4', import.meta.url).href,
-        new URL('../assets/videos/video13.mp4', import.meta.url).href,
-        new URL('../assets/videos/video14.mp4', import.meta.url).href,
-        new URL('../assets/videos/video19.mp4', import.meta.url).href,
-        new URL('../assets/videos/video20.mp4', import.meta.url).href,
-        new URL('../assets/videos/video21.mp4', import.meta.url).href,
-        new URL('../assets/videos/video22.mp4', import.meta.url).href,
-        new URL('../assets/videos/video23.mp4', import.meta.url).href,
-        new URL('../assets/videos/video24.mp4', import.meta.url).href,
-        new URL('../assets/videos/video25.mp4', import.meta.url).href,
-        new URL('../assets/videos/video26.mp4', import.meta.url).href,
-        new URL('../assets/videos/video27.mp4', import.meta.url).href,
-        new URL('../assets/videos/video28.mp4', import.meta.url).href,
-        new URL('../assets/videos/video29.mp4', import.meta.url).href,
-        new URL('../assets/videos/video30.mp4', import.meta.url).href,
+        new URL("../assets/videos/video11.mp4", import.meta.url).href,
+        new URL("../assets/videos/video12.mp4", import.meta.url).href,
+        new URL("../assets/videos/video13.mp4", import.meta.url).href,
+        new URL("../assets/videos/video14.mp4", import.meta.url).href,
+        new URL("../assets/videos/video19.mp4", import.meta.url).href,
+        new URL("../assets/videos/video20.mp4", import.meta.url).href,
+        new URL("../assets/videos/video21.mp4", import.meta.url).href,
+        new URL("../assets/videos/video22.mp4", import.meta.url).href,
+        new URL("../assets/videos/video23.mp4", import.meta.url).href,
+        new URL("../assets/videos/video24.mp4", import.meta.url).href,
+        new URL("../assets/videos/video25.mp4", import.meta.url).href,
+        new URL("../assets/videos/video26.mp4", import.meta.url).href,
+        new URL("../assets/videos/video27.mp4", import.meta.url).href,
+        new URL("../assets/videos/video28.mp4", import.meta.url).href,
+        new URL("../assets/videos/video29.mp4", import.meta.url).href,
+        new URL("../assets/videos/video30.mp4", import.meta.url).href,
       ],
       cutsceneFaseMap: {
         2: { startIndex: 0, endIndex: 3 },
@@ -283,45 +249,64 @@ export default {
       cutscenesFaseJaVistas: { 2: false, 3: false, 4: false, 5: false },
       currentCutsceneFase3Index: 0,
       videosFase3: [
-        new URL('../assets/videos/video15.mp4', import.meta.url).href,
-        new URL('../assets/videos/video16.mp4', import.meta.url).href,
-        new URL('../assets/videos/video17.mp4', import.meta.url).href,
-        new URL('../assets/videos/video18.mp4', import.meta.url).href,
+        new URL("../assets/videos/video15.mp4", import.meta.url).href,
+        new URL("../assets/videos/video16.mp4", import.meta.url).href,
+        new URL("../assets/videos/video17.mp4", import.meta.url).href,
+        new URL("../assets/videos/video18.mp4", import.meta.url).href,
       ],
       cutsceneFase3JaVista: false,
-      videoMorte: new URL('../assets/videos/videomorte.mp4', import.meta.url).href,
-      videoFundoFase5: new URL('../assets/videos/fundo_fase5.mp4', import.meta.url).href,
+      videoMorte: new URL("../assets/videos/videomorte.mp4", import.meta.url)
+        .href,
+      videoFundoFase5: new URL(
+        "../assets/videos/fundo_fase5.mp4",
+        import.meta.url
+      ).href,
       volumeMusica: 5,
       inGameMenuOpen: false,
       bgMusic: null,
       videosHistorinha: [
-        new URL('../assets/videos/video1.mp4', import.meta.url).href, new URL('../assets/videos/video2.mp4', import.meta.url).href,
-        new URL('../assets/videos/video3.mp4', import.meta.url).href, new URL('../assets/videos/video4.mp4', import.meta.url).href,
-        new URL('../assets/videos/video5.mp4', import.meta.url).href, new URL('../assets/videos/video6.mp4', import.meta.url).href,
-        new URL('../assets/videos/video7.mp4', import.meta.url).href, new URL('../assets/videos/video8.mp4', import.meta.url).href,
-        new URL('../assets/videos/video9.mp4', import.meta.url).href, new URL('../assets/videos/video10.mp4', import.meta.url).href,
+        new URL("../assets/videos/video1.mp4", import.meta.url).href,
+        new URL("../assets/videos/video2.mp4", import.meta.url).href,
+        new URL("../assets/videos/video3.mp4", import.meta.url).href,
+        new URL("../assets/videos/video4.mp4", import.meta.url).href,
+        new URL("../assets/videos/video5.mp4", import.meta.url).href,
+        new URL("../assets/videos/video6.mp4", import.meta.url).href,
+        new URL("../assets/videos/video7.mp4", import.meta.url).href,
+        new URL("../assets/videos/video8.mp4", import.meta.url).href,
+        new URL("../assets/videos/video9.mp4", import.meta.url).href,
+        new URL("../assets/videos/video10.mp4", import.meta.url).href,
       ],
       countdownValue: 3,
       countdownIntervalId: null,
       faseAtualDoJogo: 1,
       collisionCanvas: null,
       collisionCtx: null,
-      colisaoImages: { colisao1: null, colisao2: null, colisao3: null, colisao4: null },
-      faseColisaoMap: { 1: 'colisao3', 2: 'colisao1', 4: 'colisao4', 5: 'colisao2' },
+      colisaoImages: {
+        colisao1: null,
+        colisao2: null,
+        colisao3: null,
+        colisao4: null,
+      },
+      faseColisaoMap: {
+        1: "colisao3",
+        2: "colisao1",
+        4: "colisao4",
+        5: "colisao2",
+      },
 
-      fase5Duracao: 40,
+      fase5Duracao: 30,
       fase5Timer: 0,
       fase5Intervalo: null,
       tempoFinal: 0,
       currentCutsceneFinalIndex: 0,
       videosFinais: [
-        new URL('../assets/videos/video31.mp4', import.meta.url).href,
-        new URL('../assets/videos/video32.mp4', import.meta.url).href,
-        new URL('../assets/videos/video33.mp4', import.meta.url).href,
-        new URL('../assets/videos/video34.mp4', import.meta.url).href,
-        new URL('../assets/videos/video35.mp4', import.meta.url).href,
-        new URL('../assets/videos/video36.mp4', import.meta.url).href,
-        new URL('../assets/videos/video37.mp4', import.meta.url).href,
+        new URL("../assets/videos/video31.mp4", import.meta.url).href,
+        new URL("../assets/videos/video32.mp4", import.meta.url).href,
+        new URL("../assets/videos/video33.mp4", import.meta.url).href,
+        new URL("../assets/videos/video34.mp4", import.meta.url).href,
+        new URL("../assets/videos/video35.mp4", import.meta.url).href,
+        new URL("../assets/videos/video36.mp4", import.meta.url).href,
+        new URL("../assets/videos/video37.mp4", import.meta.url).href,
       ],
       // ### ADICIONADO: Variáveis para o tempo total de jogo ###
       tempoTotalDeJogo: 0,
@@ -331,12 +316,15 @@ export default {
 
   computed: {
     showPhase5Background() {
-      return this.faseAtualDoJogo === 5 && (this.estado === 'jogando' || this.estado === 'countdown');
+      return (
+        this.faseAtualDoJogo === 5 &&
+        (this.state === "jogando" || this.state === "countdown")
+      );
     },
     fase5Progresso() {
-        if (this.fase5Duracao === 0) return 0;
-        return (this.fase5Timer / this.fase5Duracao) * 100;
-    }
+      if (this.fase5Duracao === 0) return 0;
+      return (this.fase5Timer / this.fase5Duracao) * 100;
+    },
   },
 
   mounted() {
@@ -345,11 +333,25 @@ export default {
       for (const key in this.colisaoImages) {
         if (Object.hasOwnProperty.call(this.colisaoImages, key)) {
           const img = new Image();
-          img.src = new URL(`../assets/background/${key}.png`, import.meta.url).href;
-          promises.push(new Promise((resolve, reject) => {
-            img.onload = () => { this.colisaoImages[key] = img; resolve(); };
-            img.onerror = (e) => { console.error(`Erro ao carregar imagem de colisão ${key}.png:`, e); reject(e); };
-          }));
+          img.src = new URL(
+            `../assets/background/${key}.png`,
+            import.meta.url
+          ).href;
+          promises.push(
+            new Promise((resolve, reject) => {
+              img.onload = () => {
+                this.colisaoImages[key] = img;
+                resolve();
+              };
+              img.onerror = (e) => {
+                console.error(
+                  `Erro ao carregar imagem de colisão ${key}.png:`,
+                  e
+                );
+                reject(e);
+              };
+            })
+          );
         }
       }
       return Promise.all(promises);
@@ -357,33 +359,64 @@ export default {
 
     Promise.all([carregarSprites(), carregarFundos(), loadCollisionImages()])
       .then(([sprites, fundos]) => {
-        this.imagens = sprites; this.fundos = fundos; this.fundoAtual = fundos[0];
+        this.imagens = sprites;
+        this.fundos = fundos;
+        this.fundoAtual = fundos[0];
         console.log("Todos os recursos carregados!");
 
         this.collisionCanvas = this.$refs.collisionCanvas;
-        this.collisionCtx = this.collisionCanvas.getContext('2d', { willReadFrequently: true });
-        this.collisionCanvas.width = this.width; this.collisionCanvas.height = this.height;
+        this.collisionCtx = this.collisionCanvas.getContext("2d", {
+          willReadFrequently: true,
+        });
+        this.collisionCanvas.width = this.width;
+        this.collisionCanvas.height = this.height;
 
         this.imagens.boss_sleeping = new Image();
-        this.imagens.boss_sleeping.src = new URL('../assets/sprites/cartman2.png', import.meta.url).href;
-        this.imagens.boss_sleeping.onload = () => console.log("Imagem do boss_sleeping carregada!");
-        this.imagens.boss_sleeping.onerror = (e) => console.error("Erro ao carregar a imagem do boss_sleeping:", e);
+        this.imagens.boss_sleeping.src = new URL(
+          "../assets/sprites/cartman2.png",
+          import.meta.url
+        ).href;
+        this.imagens.boss_sleeping.onload = () =>
+          console.log("Imagem do boss_sleeping carregada!");
+        this.imagens.boss_sleeping.onerror = (e) =>
+          console.error("Erro ao carregar a imagem do boss_sleeping:", e);
 
-        this.bgMusic = new Audio(new URL('../assets/audio/background_music.mp3', import.meta.url).href);
-        this.bgMusic.loop = true; this.bgMusic.volume = this.volumeMusica / 100;
-        this.bgMusic.play().catch(e => console.warn("Música de fundo bloqueada pelo navegador:", e));
+        this.bgMusic = new Audio(
+          new URL("../assets/audio/background_music.mp3", import.meta.url).href
+        );
+        this.bgMusic.loop = true;
+        this.bgMusic.volume = this.volumeMusica / 100;
+        this.bgMusic
+          .play()
+          .catch((e) =>
+            console.warn("Música de fundo bloqueada pelo navegador:", e)
+          );
 
         const startMusicOnInteraction = () => {
           if (this.bgMusic && this.bgMusic.paused) {
-            this.bgMusic.play().catch(e => console.warn("Erro ao tocar música após interação:", e));
+            this.bgMusic
+              .play()
+              .catch((e) =>
+                console.warn("Erro ao tocar música após interação:", e)
+              );
           }
-          window.removeEventListener('click', startMusicOnInteraction);
-          window.removeEventListener('keydown', startMusicOnInteraction);
+          window.removeEventListener("click", startMusicOnInteraction);
+          window.removeEventListener("keydown", startMusicOnInteraction);
         };
-        window.addEventListener('click', startMusicOnInteraction);
-        window.addEventListener('keydown', startMusicOnInteraction);
+        window.addEventListener("click", startMusicOnInteraction);
+        window.addEventListener("keydown", startMusicOnInteraction);
       })
-      .catch(error => { console.error("Erro ao carregar recursos:", error); });
+      .catch((error) => {
+        console.error("Erro ao carregar recursos:", error);
+      });
+  },
+
+  setup() {
+    const { state, setState } = useState();
+    return {
+      state,
+      setState,
+    };
   },
 
   methods: {
@@ -392,149 +425,130 @@ export default {
       const collisionImage = this.colisaoImages[collisionImageName];
       if (this.collisionCtx && collisionImage) {
         this.collisionCtx.clearRect(0, 0, this.width, this.height);
-        this.collisionCtx.drawImage(collisionImage, 0, 0, this.width, this.height);
+        this.collisionCtx.drawImage(
+          collisionImage,
+          0,
+          0,
+          this.width,
+          this.height
+        );
       } else if (this.collisionCtx) {
         this.collisionCtx.clearRect(0, 0, this.width, this.height);
       }
     },
     iniciarOuContinuarJogo() {
       if (!this.historinhaJaVista) {
-        this.estado = "historinha"; this.videoIndex = 0;
-        this.$nextTick(() => { if (this.$refs.videoPlayer) this.$refs.videoPlayer.play(); });
+        this.setState("historinha");
+        this.videoIndex = 0;
+        this.$nextTick(() => {
+          if (this.$refs.videoPlayer) this.$refs.videoPlayer.play();
+        });
       } else {
         this.iniciarGameplay(this.faseAtualDoJogo);
       }
     },
-    avancarVideoHistorinha() {
-      if (this.videoIndex < this.videosHistorinha.length - 1) {
-        this.videoIndex++;
-      } else {
-        this.historinhaJaVista = true; this.iniciarGameplay(this.faseAtualDoJogo);
-      }
-    },
-    pularVideoHistorinha() {
-      this.historinhaJaVista = true; this.iniciarGameplay(this.faseAtualDoJogo);
-    },
-    mostrarCutsceneFase(proximaFase) {
-        const cutsceneInfo = this.cutsceneFaseMap[proximaFase];
-        if (cutsceneInfo && !this.cutscenesFaseJaVistas[proximaFase]) {
-            this.estado = "cutsceneFase"; this.currentCutsceneFaseIndex = cutsceneInfo.startIndex;
-            this.nextFaseAfterCutscene = proximaFase; this.limparTimers();
-            this.$nextTick(() => {
-                const videoPlayerFase = this.$refs.videoPlayerFase;
-                if (videoPlayerFase) { videoPlayerFase.load(); videoPlayerFase.play().catch(e => console.warn("Erro ao tocar vídeo da cutscene:", e)); }
-            });
-        } else {
-            this.iniciarContagemRegressiva(proximaFase);
-        }
-    },
-    avancarVideoCutsceneFase() {
-        const cutsceneInfo = this.cutsceneFaseMap[this.nextFaseAfterCutscene];
-        if (cutsceneInfo && this.currentCutsceneFaseIndex < cutsceneInfo.endIndex) {
-            this.currentCutsceneFaseIndex++;
-            this.$nextTick(() => {
-                const videoPlayerFase = this.$refs.videoPlayerFase;
-                if (videoPlayerFase) { videoPlayerFase.load(); videoPlayerFase.play().catch(e => console.warn("Erro ao tocar vídeo da cutscene:", e)); }
-            });
-        } else {
-            this.cutscenesFaseJaVistas[this.nextFaseAfterCutscene] = true;
-            this.iniciarContagemRegressiva(this.nextFaseAfterCutscene);
-        }
-    },
-    pularCutsceneFase() {
-      const videoPlayerFase = this.$refs.videoPlayerFase;
-      if (videoPlayerFase) { videoPlayerFase.pause(); videoPlayerFase.currentTime = 0; }
-      this.cutscenesFaseJaVistas[this.nextFaseAfterCutscene] = true;
-      this.iniciarContagemRegressiva(this.nextFaseAfterCutscene);
+    mostrarCutsceneFase() {
+      mostrarCutsceneFase(this);
     },
     iniciarCutsceneFase3() {
-      this.estado = "cutsceneFase3"; this.currentCutsceneFase3Index = 0; this.limparTimers();
-      this.$nextTick(() => {
-        const videoPlayerFase3 = this.$refs.videoPlayerFase3;
-        if (videoPlayerFase3) { videoPlayerFase3.play().catch(e => console.warn("Erro ao tocar vídeo da cutscene da Fase 3:", e)); }
-      });
-    },
-    avancarVideoCutsceneFase3() {
-      if (this.currentCutsceneFase3Index < this.videosFase3.length - 1) {
-        this.currentCutsceneFase3Index++;
-        this.$nextTick(() => {
-          const videoPlayerFase3 = this.$refs.videoPlayerFase3;
-          if (videoPlayerFase3) { videoPlayerFase3.load(); videoPlayerFase3.play().catch(e => console.warn("Erro ao tocar vídeo da cutscene da Fase 3:", e)); }
-        });
-      } else {
-        this.cutsceneFase3JaVista = true; this.iniciarContagemRegressiva(3);
-      }
-    },
-    pularCutsceneFase3() {
-      const videoPlayerFase3 = this.$refs.videoPlayerFase3;
-      if (videoPlayerFase3) { videoPlayerFase3.pause(); videoPlayerFase3.currentTime = 0; }
-      this.cutsceneFase3JaVista = true; this.iniciarContagemRegressiva(3);
+      iniciarCutsceneFase3(this);
     },
     iniciarCutsceneFinal() {
-        this.estado = 'cutsceneFinal';
-        this.currentCutsceneFinalIndex = 0;
-        this.bgMusic.pause();
-        this.$nextTick(() => {
-            const videoPlayerFinal = this.$refs.videoPlayerFinal;
-            if (videoPlayerFinal) { videoPlayerFinal.play().catch(e => console.warn("Erro ao tocar vídeo final:", e)); }
-        });
+      iniciarCutsceneFinal(this);
+    },
+
+    avancarVideoCutsceneFase() {
+      avancarVideoCutscenefase(this);
+    },
+    avancarVideoCutsceneFase3() {
+      avancarVideoCutsceneFase3(this);
     },
     avancarVideoFinal() {
-        if (this.currentCutsceneFinalIndex < this.videosFinais.length - 1) {
-            this.currentCutsceneFinalIndex++;
-            this.$nextTick(() => {
-                const videoPlayerFinal = this.$refs.videoPlayerFinal;
-                if (videoPlayerFinal) { videoPlayerFinal.load(); videoPlayerFinal.play().catch(e => console.warn("Erro ao tocar próximo vídeo final:", e)); }
-            });
-        } else {
-            this.estado = 'telaFinal';
-        }
+      avancarVideoFinal(this);
+    },
+    avancarVideoHistorinha() {
+      avancarVideoHistorinha(this);
+    },
+
+    pularCutsceneFase() {
+      pularCutsceneFase(this);
+    },
+    pularCutsceneFase3() {
+      pularCutsceneFase3(this);
     },
     pularCutsceneFinal() {
-        const videoPlayerFinal = this.$refs.videoPlayerFinal;
-        if (videoPlayerFinal) { videoPlayerFinal.pause(); videoPlayerFinal.currentTime = 0; }
-        this.estado = 'telaFinal';
+      pularCutsceneFinal(this);
     },
+    pularVideoHistorinha() {
+      pularVideoHistorinha(this);
+    },
+
     iniciarContagemRegressiva(proximaFaseAlvo) {
       this.fundoAtual = this.fundos[proximaFaseAlvo - 1] || this.fundos[0];
-      this.estado = 'countdown';
+      this.setState("countdown");
       const canvas = this.$refs.canvas;
       if (canvas && this.fundoAtual) {
-          const ctx = canvas.getContext('2d');
-          ctx.clearRect(0, 0, this.width, this.height);
-          if (proximaFaseAlvo !== 5) { ctx.drawImage(this.fundoAtual, 0, 0, this.width, this.height); }
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, this.width, this.height);
+        if (proximaFaseAlvo !== 5) {
+          ctx.drawImage(this.fundoAtual, 0, 0, this.width, this.height);
+        }
       }
       this.countdownValue = 3;
-      if (this.countdownIntervalId) { clearInterval(this.countdownIntervalId); }
+      if (this.countdownIntervalId) {
+        clearInterval(this.countdownIntervalId);
+      }
       this.countdownIntervalId = setInterval(() => {
         if (this.countdownValue > 1) {
           this.countdownValue--;
         } else if (this.countdownValue === 1) {
-          this.countdownValue = 'JÁ!';
+          this.countdownValue = "JÁ!";
           setTimeout(() => {
-            clearInterval(this.countdownIntervalId); this.countdownIntervalId = null;
+            clearInterval(this.countdownIntervalId);
+            this.countdownIntervalId = null;
             this.avancarParaProximaFase(proximaFaseAlvo);
           }, 800);
         } else {
-          clearInterval(this.countdownIntervalId); this.countdownIntervalId = null;
+          clearInterval(this.countdownIntervalId);
+          this.countdownIntervalId = null;
         }
       }, 1000);
     },
     avancarParaProximaFase(novaFase) {
-      this.pontosSalvos = this.pontos; this.nivel = novaFase; this.faseAtualDoJogo = novaFase;
-      this.projectiles = []; this.setupCollisionCanvas(this.nivel); this.pontos += 25;
+      this.pontosSalvos = this.pontos;
+      this.nivel = novaFase;
+      this.faseAtualDoJogo = novaFase;
+      this.projectiles = [];
+      this.setupCollisionCanvas(this.nivel);
+      this.pontos += 25;
       this.velocidadeProjeteis = this.velocidadeProjeteisPorFase[this.nivel];
-      if (this.nivel === 5) { this.player.x = 220; this.player.y = this.height / 2; }
-      this.setupInimigos(); this.estado = "jogando";
-      this.iniciarTimer(); this.iniciarLoop();
-      if (this.nivel === 5) { this.iniciarLogicaFase5(); }
+      if (this.nivel === 5) {
+        this.player.x = 220;
+        this.player.y = this.height / 2;
+      }
+      this.setupInimigos();
+      this.setState("jogando");
+      this.iniciarTimer();
+      this.iniciarLoop();
+      if (this.nivel === 5) {
+        this.iniciarLogicaFase5();
+      }
     },
     iniciarGameplay(faseParaIniciar) {
-      this.estado = "jogando"; this.nivel = faseParaIniciar; this.faseAtualDoJogo = faseParaIniciar;
-      this.velocidadeProjeteis = this.velocidadeProjeteisPorFase[faseParaIniciar];
-      if (this.faseAtualDoJogo === 5) { this.player.x = 220; this.player.y = this.height / 2; }
-      else { this.player.x = this.width / 2; this.player.y = this.height / 2; }
-      this.setupCollisionCanvas(this.nivel); this.setupInimigos();
+      this.setState("jogando");
+      this.nivel = faseParaIniciar;
+      this.faseAtualDoJogo = faseParaIniciar;
+      this.velocidadeProjeteis =
+        this.velocidadeProjeteisPorFase[faseParaIniciar];
+      if (this.faseAtualDoJogo === 5) {
+        this.player.x = 220;
+        this.player.y = this.height / 2;
+      } else {
+        this.player.x = this.width / 2;
+        this.player.y = this.height / 2;
+      }
+      this.setupCollisionCanvas(this.nivel);
+      this.setupInimigos();
       this.$nextTick(() => {
         this.setupControles();
         this.iniciarTimer();
@@ -544,63 +558,142 @@ export default {
           this.iniciarTimerTotal();
         }
       });
-      if (this.faseAtualDoJogo === 5) { this.iniciarLogicaFase5(); }
+      if (this.faseAtualDoJogo === 5) {
+        this.iniciarLogicaFase5();
+      }
     },
     renascer() {
-      if (this.estado !== 'morte') return;
+      if (this.state !== "morte") return;
       setTimeout(() => {
-        this.estado = 'jogando'; const video = this.$refs.videoMortePlayer;
-        if (video) { video.pause(); video.currentTime = 0; }
-        this.limparTimers(); this.vidas = 3;
-        if (this.faseAtualDoJogo === 1) { this.pontos = 0; this.pontosSalvos = 0; this.nivel = 1; }
-        else { this.pontos = this.pontosSalvos; }
+        this.setState("jogando");
+        const video = this.$refs.videoMortePlayer;
+        if (video) {
+          video.pause();
+          video.currentTime = 0;
+        }
+        this.limparTimers();
+        this.vidas = 3;
+        if (this.faseAtualDoJogo === 1) {
+          this.pontos = 0;
+          this.pontosSalvos = 0;
+          this.nivel = 1;
+        } else {
+          this.pontos = this.pontosSalvos;
+        }
         this.tempo = 0; // O tempo da fase reinicia
-        this.velocidadeProjeteis = this.velocidadeProjeteisPorFase[this.faseAtualDoJogo];
-        this.fundoAtual = this.fundos[this.faseAtualDoJogo - 1] || this.fundos[0];
-        if (this.faseAtualDoJogo === 5) { this.player.x = 220; this.player.y = this.height / 2; this.fase5Timer = 0; }
-        else { this.player.x = this.width / 2; this.player.y = this.height / 2; }
-        this.projectiles = []; this.powerUps = []; this.slowAtivo = false;
-        this.setupInimigos(); this.setupCollisionCanvas(this.faseAtualDoJogo);
-        this.iniciarTimer(); this.iniciarLoop();
-        if (this.faseAtualDoJogo === 5) { this.iniciarLogicaFase5(); }
+        this.velocidadeProjeteis =
+          this.velocidadeProjeteisPorFase[this.faseAtualDoJogo];
+        this.fundoAtual =
+          this.fundos[this.faseAtualDoJogo - 1] || this.fundos[0];
+        if (this.faseAtualDoJogo === 5) {
+          this.player.x = 220;
+          this.player.y = this.height / 2;
+          this.fase5Timer = 0;
+        } else {
+          this.player.x = this.width / 2;
+          this.player.y = this.height / 2;
+        }
+        this.projectiles = [];
+        this.powerUps = [];
+        this.slowAtivo = false;
+        this.setupInimigos();
+        this.setupCollisionCanvas(this.faseAtualDoJogo);
+        this.iniciarTimer();
+        this.iniciarLoop();
+        if (this.faseAtualDoJogo === 5) {
+          this.iniciarLogicaFase5();
+        }
       }, 500);
     },
     resetarEstadoDoJogo() {
-      const historinhaJaVistaTemp = this.historinhaJaVista; const imagensTemp = this.imagens;
-      const fundosTemp = this.fundos; const volumeMusicaTemp = this.volumeMusica;
-      const bgMusicTemp = this.bgMusic; const cutsceneFase3JaVistaTemp = this.cutsceneFase3JaVista;
+      const historinhaJaVistaTemp = this.historinhaJaVista;
+      const imagensTemp = this.imagens;
+      const fundosTemp = this.fundos;
+      const volumeMusicaTemp = this.volumeMusica;
+      const bgMusicTemp = this.bgMusic;
+      const cutsceneFase3JaVistaTemp = this.cutsceneFase3JaVista;
       const colisaoImagesTemp = this.colisaoImages;
       this.limparTimers();
       // ### ADICIONADO: Limpa o timer total ao voltar para o menu ###
-      if (this.tempoTotalInterval) { clearInterval(this.tempoTotalInterval); this.tempoTotalInterval = null; }
+      if (this.tempoTotalInterval) {
+        clearInterval(this.tempoTotalInterval);
+        this.tempoTotalInterval = null;
+      }
       Object.assign(this.$data, this.$options.data.call(this));
-      this.historinhaJaVista = historinhaJaVistaTemp; this.imagens = imagensTemp;
-      this.fundos = fundosTemp; this.volumeMusica = volumeMusicaTemp;
-      this.bgMusic = bgMusicTemp; this.cutsceneFase3JaVista = cutsceneFase3JaVistaTemp;
-      this.colisaoImages = colisaoImagesTemp; this.nivel = 1; this.faseAtualDoJogo = 1;
-      this.velocidadeProjeteis = this.velocidadeProjeteisPorFase[1]; this.pontos = 0; this.pontosSalvos = 0;
+      this.historinhaJaVista = historinhaJaVistaTemp;
+      this.imagens = imagensTemp;
+      this.fundos = fundosTemp;
+      this.volumeMusica = volumeMusicaTemp;
+      this.bgMusic = bgMusicTemp;
+      this.cutsceneFase3JaVista = cutsceneFase3JaVistaTemp;
+      this.colisaoImages = colisaoImagesTemp;
+      this.nivel = 1;
+      this.faseAtualDoJogo = 1;
+      this.velocidadeProjeteis = this.velocidadeProjeteisPorFase[1];
+      this.pontos = 0;
+      this.pontosSalvos = 0;
       this.cutscenesFaseJaVistas = { 2: false, 3: false, 4: false, 5: false };
       this.cutsceneFase3JaVista = false;
-      if (this.bgMusic) { this.bgMusic.volume = this.volumeMusica / 100; if (this.bgMusic.paused) { this.bgMusic.play().catch(e => console.warn("Erro ao tocar música:", e)); } }
+      if (this.bgMusic) {
+        this.bgMusic.volume = this.volumeMusica / 100;
+        if (this.bgMusic.paused) {
+          this.bgMusic
+            .play()
+            .catch((e) => console.warn("Erro ao tocar música:", e));
+        }
+      }
       this.fundoAtual = this.fundos[this.nivel - 1] || this.fundos[0];
       this.setupCollisionCanvas(this.faseAtualDoJogo);
     },
     limparTimers() {
-      if (this.tempoInterval) { clearInterval(this.tempoInterval); this.tempoInterval = null; }
-      if (this.projectileInterval) { clearInterval(this.projectileInterval); this.projectileInterval = null; }
-      if (this.projectileSpawnInterval) { clearInterval(this.projectileSpawnInterval); this.projectileSpawnInterval = null; }
-      if (this.slowTimeoutId) { clearTimeout(this.slowTimeoutId); this.slowTimeoutId = null; }
-      if (this.bossTimers.attack) { clearTimeout(this.bossTimers.attack); this.bossTimers.attack = null; }
-      if (this.bossTimers.rest) { clearTimeout(this.bossTimers.rest); this.bossTimers.rest = null; }
-      cancelAnimationFrame(this.animationId); this.animationId = null;
-      if (this.countdownIntervalId) { clearInterval(this.countdownIntervalId); this.countdownIntervalId = null; }
-      if (this.fase5Intervalo) { clearInterval(this.fase5Intervalo); this.fase5Intervalo = null; }
+      if (this.tempoInterval) {
+        clearInterval(this.tempoInterval);
+        this.tempoInterval = null;
+      }
+      if (this.projectileInterval) {
+        clearInterval(this.projectileInterval);
+        this.projectileInterval = null;
+      }
+      if (this.projectileSpawnInterval) {
+        clearInterval(this.projectileSpawnInterval);
+        this.projectileSpawnInterval = null;
+      }
+      if (this.slowTimeoutId) {
+        clearTimeout(this.slowTimeoutId);
+        this.slowTimeoutId = null;
+      }
+      if (this.bossTimers.attack) {
+        clearTimeout(this.bossTimers.attack);
+        this.bossTimers.attack = null;
+      }
+      if (this.bossTimers.rest) {
+        clearTimeout(this.bossTimers.rest);
+        this.bossTimers.rest = null;
+      }
+      cancelAnimationFrame(this.animationId);
+      this.animationId = null;
+      if (this.countdownIntervalId) {
+        clearInterval(this.countdownIntervalId);
+        this.countdownIntervalId = null;
+      }
+      if (this.fase5Intervalo) {
+        clearInterval(this.fase5Intervalo);
+        this.fase5Intervalo = null;
+      }
     },
     setupControles() {
-      if (this._handleKeyDown) { window.removeEventListener("keydown", this._handleKeyDown); }
-      if (this._handleKeyUp) { window.removeEventListener("keyup", this._handleKeyUp); }
-      this._handleKeyDown = (e) => { this.keysPressed[e.key] = true; };
-      this._handleKeyUp = (e) => { this.keysPressed[e.key] = false; };
+      if (this._handleKeyDown) {
+        window.removeEventListener("keydown", this._handleKeyDown);
+      }
+      if (this._handleKeyUp) {
+        window.removeEventListener("keyup", this._handleKeyUp);
+      }
+      this._handleKeyDown = (e) => {
+        this.keysPressed[e.key] = true;
+      };
+      this._handleKeyUp = (e) => {
+        this.keysPressed[e.key] = false;
+      };
       window.addEventListener("keydown", this._handleKeyDown);
       window.addEventListener("keyup", this._handleKeyUp);
     },
@@ -609,9 +702,18 @@ export default {
       const size = 70;
       const padding = 50;
       if (this.faseAtualDoJogo === 5) {
-        this.inimigos = []; this.boss = gerarBoss(this.width, this.height, 400); this.iniciarCicloBoss();
+        this.inimigos = [];
+        this.boss = gerarBoss(this.width, this.height, 400);
+        this.iniciarCicloBoss();
       } else {
-        this.boss = null; this.inimigos = gerarInimigosPorFase(this.faseAtualDoJogo, this.width, this.height, size, padding);
+        this.boss = null;
+        this.inimigos = gerarInimigosPorFase(
+          this.faseAtualDoJogo,
+          this.width,
+          this.height,
+          size,
+          padding
+        );
       }
     },
     // ### ADICIONADO: Método para controlar o tempo total de jogo ###
@@ -620,145 +722,304 @@ export default {
       this.tempoTotalDeJogo = 0;
       this.tempoTotalInterval = setInterval(() => {
         // O tempo total só avança se o jogo estiver rodando e não pausado
-        if (this.estado === 'jogando' && !this.inGameMenuOpen) {
-           this.tempoTotalDeJogo++;
+        if (this.state === "jogando" && !this.inGameMenuOpen) {
+          this.tempoTotalDeJogo++;
         }
       }, 1000);
     },
     iniciarTimer() {
       clearInterval(this.tempoInterval);
       this.tempoInterval = setInterval(() => {
-        if (this.estado !== "jogando" || this.inGameMenuOpen) return;
+        if (this.state !== "jogando" || this.inGameMenuOpen) return;
         this.tempo++;
         if (this.tempo % 25 === 0 && this.nivel < 4 && !this.trocaFaseDelay) {
-            this.trocaFaseDelay = true;
-            setTimeout(() => {
-                if (this.nivel === 1) { this.mostrarCutsceneFase(this.nivel + 1); }
-                else if (this.nivel === 2 && !this.cutsceneFase3JaVista) { this.iniciarCutsceneFase3(); }
-                else if (this.nivel === 3) { this.mostrarCutsceneFase(this.nivel + 1); }
-                this.trocaFaseDelay = false;
-            }, 3000);
-        } else if (this.tempo > 0 && this.tempo % 25 === 0 && this.nivel === 4 && !this.trocaFaseDelay) {
-            this.trocaFaseDelay = true;
-            setTimeout(() => {
-                this.mostrarCutsceneFase(this.nivel + 1);
-                this.trocaFaseDelay = false;
-            }, 3000);
+          this.trocaFaseDelay = true;
+          setTimeout(() => {
+            if (this.nivel === 1) {
+              this.mostrarCutsceneFase(this.nivel + 1);
+            } else if (this.nivel === 2 && !this.cutsceneFase3JaVista) {
+              this.iniciarCutsceneFase3();
+            } else if (this.nivel === 3) {
+              this.mostrarCutsceneFase(this.nivel + 1);
+            }
+            this.trocaFaseDelay = false;
+          }, 3000);
+        } else if (
+          this.tempo > 0 &&
+          this.tempo % 25 === 0 &&
+          this.nivel === 4 &&
+          !this.trocaFaseDelay
+        ) {
+          this.trocaFaseDelay = true;
+          setTimeout(() => {
+            this.mostrarCutsceneFase(this.nivel + 1);
+            this.trocaFaseDelay = false;
+          }, 3000);
         }
         this.pontos += 10;
       }, 1000);
     },
     iniciarLogicaFase5() {
-        if (this.fase5Intervalo) clearInterval(this.fase5Intervalo);
-        this.fase5Timer = 0;
-        this.fase5Intervalo = setInterval(() => {
-            if (this.estado !== "jogando" || this.inGameMenuOpen) return;
-            if (this.fase5Timer < this.fase5Duracao) {
-                this.fase5Timer++;
-            } else {
-                this.vencerJogo();
-            }
-        }, 1000);
+      if (this.fase5Intervalo) clearInterval(this.fase5Intervalo);
+      this.fase5Timer = 0;
+      this.fase5Intervalo = setInterval(() => {
+        if (this.state !== "jogando" || this.inGameMenuOpen) return;
+        if (this.fase5Timer < this.fase5Duracao) {
+          this.fase5Timer++;
+        } else {
+          this.vencerJogo();
+        }
+      }, 1000);
     },
     vencerJogo() {
-        this.limparTimers();
-        // ### ALTERADO: Salva o tempo TOTAL, não o da fase ###
-        this.tempoFinal = this.tempoTotalDeJogo;
-        this.estado = 'fadeParaFinal';
-        setTimeout(() => {
-            this.iniciarCutsceneFinal();
-        }, 2000);
+      this.limparTimers();
+      // ### ALTERADO: Salva o tempo TOTAL, não o da fase ###
+      this.tempoFinal = this.tempoTotalDeJogo;
+      this.setState("fadeParaFinal");
+      setTimeout(() => {
+        this.iniciarCutsceneFinal();
+      }, 2000);
     },
     iniciarLoop() {
-      const canvas = this.$refs.canvas; if (!canvas) return; const ctx = canvas.getContext("2d");
+      const canvas = this.$refs.canvas;
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
       clearInterval(this.projectileInterval);
       this.projectileInterval = setInterval(() => {
-        if (this.estado !== "jogando" || this.inGameMenuOpen) return;
+        if (this.state !== "jogando" || this.inGameMenuOpen) return;
         if (Math.random() < 0.05) {
-          this.powerUps.push({ x: Math.random() * this.width, y: -50, r: 20, type: Math.random() < 0.5 ? "life" : "slow", rotation: 0 });
+          this.powerUps.push({
+            x: Math.random() * this.width,
+            y: -50,
+            r: 20,
+            type: Math.random() < 0.5 ? "life" : "slow",
+            rotation: 0,
+          });
         }
       }, 300);
       clearInterval(this.projectileSpawnInterval);
       this.projectileSpawnInterval = setInterval(() => {
-        if (this.estado !== "jogando" || this.inGameMenuOpen) return;
-        const config = { player: this.player, slowAtivo: this.slowAtivo, velocidadeProjeteis: this.velocidadeProjeteisPorFase[this.faseAtualDoJogo], imagens: this.imagens, projectiles: this.projectiles };
-        if (this.faseAtualDoJogo < 5) { this.inimigos.forEach(inimigo => atirarProjeteis({ ...config, atirador: inimigo }, { velocidadeMultiplicador: 1, width: this.projectileSize, height: this.projectileSize })); }
-        else if (this.boss && this.bossState === 'attacking') { atirarProjeteis({ ...config, atirador: this.boss }, { velocidadeMultiplicador: 2, width: this.projectileSize, height: this.projectileSize }); }
+        if (this.state !== "jogando" || this.inGameMenuOpen) return;
+        const config = {
+          player: this.player,
+          slowAtivo: this.slowAtivo,
+          velocidadeProjeteis:
+            this.velocidadeProjeteisPorFase[this.faseAtualDoJogo],
+          imagens: this.imagens,
+          projectiles: this.projectiles,
+        };
+        if (this.faseAtualDoJogo < 5) {
+          this.inimigos.forEach((inimigo) =>
+            atirarProjeteis(
+              { ...config, atirador: inimigo },
+              {
+                velocidadeMultiplicador: 1,
+                width: this.projectileSize,
+                height: this.projectileSize,
+              }
+            )
+          );
+        } else if (this.boss && this.bossState === "attacking") {
+          atirarProjeteis(
+            { ...config, atirador: this.boss },
+            {
+              velocidadeMultiplicador: 2,
+              width: this.projectileSize,
+              height: this.projectileSize,
+            }
+          );
+        }
       }, 700);
-      cancelAnimationFrame(this.animationId); this.animate(ctx);
+      cancelAnimationFrame(this.animationId);
+      this.animate(ctx);
     },
     animate(ctx) {
-      if (this.estado !== "jogando" || this.inGameMenuOpen) { cancelAnimationFrame(this.animationId); return; }
+      if (this.state !== "jogando" || this.inGameMenuOpen) {
+        cancelAnimationFrame(this.animationId);
+        return;
+      }
       ctx.clearRect(0, 0, this.width, this.height);
-      if (this.faseAtualDoJogo !== 5) { if (this.fundoAtual) { ctx.drawImage(this.fundoAtual, 0, 0, this.width, this.height); } }
-      const speed = 5; const playerRadius = this.player.hitboxRadius;
-      let newPlayerX = this.player.x; let newPlayerY = this.player.y;
-      if (this.keysPressed['w'] || this.keysPressed['W']) { newPlayerY -= speed; }
-      if (this.keysPressed['s'] || this.keysPressed['S']) { newPlayerY += speed; }
-      if (this.keysPressed['a'] || this.keysPressed['A']) { newPlayerX -= speed; }
-      if (this.keysPressed['d'] || this.keysPressed['D']) { newPlayerX += speed; }
-      const isCollidingWithWalls = verificarColisaoDePixel(this.collisionCtx, newPlayerX, newPlayerY, playerRadius, this.width, this.height);
-      if (!isCollidingWithWalls) { this.player.x = newPlayerX; this.player.y = newPlayerY; }
+      if (this.faseAtualDoJogo !== 5) {
+        if (this.fundoAtual) {
+          ctx.drawImage(this.fundoAtual, 0, 0, this.width, this.height);
+        }
+      }
+      const speed = 5;
+      const playerRadius = this.player.hitboxRadius;
+      let newPlayerX = this.player.x;
+      let newPlayerY = this.player.y;
+      if (this.keysPressed["w"] || this.keysPressed["W"]) {
+        newPlayerY -= speed;
+      }
+      if (this.keysPressed["s"] || this.keysPressed["S"]) {
+        newPlayerY += speed;
+      }
+      if (this.keysPressed["a"] || this.keysPressed["A"]) {
+        newPlayerX -= speed;
+      }
+      if (this.keysPressed["d"] || this.keysPressed["D"]) {
+        newPlayerX += speed;
+      }
+      const isCollidingWithWalls = verificarColisaoDePixel(
+        this.collisionCtx,
+        newPlayerX,
+        newPlayerY,
+        playerRadius,
+        this.width,
+        this.height
+      );
+      if (!isCollidingWithWalls) {
+        this.player.x = newPlayerX;
+        this.player.y = newPlayerY;
+      }
       const metadePlayer = this.player.size / 2;
-      this.player.x = Math.max(metadePlayer, Math.min(this.width - metadePlayer, this.player.x));
-      this.player.y = Math.max(metadePlayer, Math.min(this.height - metadePlayer, this.player.y));
-      if (this.imagens.player) { drawImage(ctx, this.imagens.player, this.player.x, this.player.y, this.player.size, this.player.size); }
-      if (this.faseAtualDoJogo < 5) { this.processarInimigos(ctx); } else { this.processarBoss(ctx); }
-      this.processarProjetiles(ctx); this.processarPowerUps(ctx);
+      this.player.x = Math.max(
+        metadePlayer,
+        Math.min(this.width - metadePlayer, this.player.x)
+      );
+      this.player.y = Math.max(
+        metadePlayer,
+        Math.min(this.height - metadePlayer, this.player.y)
+      );
+      if (this.imagens.player) {
+        drawImage(
+          ctx,
+          this.imagens.player,
+          this.player.x,
+          this.player.y,
+          this.player.size,
+          this.player.size
+        );
+      }
+      if (this.faseAtualDoJogo < 5) {
+        this.processarInimigos(ctx);
+      } else {
+        this.processarBoss(ctx);
+      }
+      this.processarProjetiles(ctx);
+      this.processarPowerUps(ctx);
       this.animationId = requestAnimationFrame(() => this.animate(ctx));
     },
     processarBoss(ctx) {
-      if (this.bossState === 'attacking') { this.moverBoss(); }
+      if (this.bossState === "attacking") {
+        this.moverBoss();
+      }
       if (!this.boss) return;
-      const bossImage = this.bossState === 'sleeping' ? this.imagens.boss_sleeping : this.imagens.boss;
-      if (bossImage) { drawImage(ctx, bossImage, this.boss.x, this.boss.y, this.boss.size, this.boss.size, 0); }
+      const bossImage =
+        this.bossState === "sleeping"
+          ? this.imagens.boss_sleeping
+          : this.imagens.boss;
+      if (bossImage) {
+        drawImage(
+          ctx,
+          bossImage,
+          this.boss.x,
+          this.boss.y,
+          this.boss.size,
+          this.boss.size,
+          0
+        );
+      }
     },
     // ### ALTERADO: Lógica do boss simplificada para não dormir ###
     iniciarCicloBoss() {
       if (!this.boss) return;
-      this.bossState = 'attacking'; // Define o estado como 'attacking' permanentemente
+      this.bossState = "attacking"; // Define o estado como 'attacking' permanentemente
       // A lógica de timers para dormir foi removida.
     },
     processarInimigos(ctx) {
       this.inimigos.forEach((inimigo, index) => {
-        const spriteIndex = (index % 6) + 1; const img = this.imagens['inimigo' + spriteIndex];
-        if (img) { drawImage(ctx, img, inimigo.x, inimigo.y, inimigo.size, inimigo.size, 0); }
+        const spriteIndex = (index % 6) + 1;
+        const img = this.imagens["inimigo" + spriteIndex];
+        if (img) {
+          drawImage(
+            ctx,
+            img,
+            inimigo.x,
+            inimigo.y,
+            inimigo.size,
+            inimigo.size,
+            0
+          );
+        }
       });
     },
     processarProjetiles(ctx) {
       this.projectiles = this.projectiles.filter((p) => {
-        p.x += p.xVel; p.y += p.yVel;
-        if (p.x < -50 || p.y < -50 || p.x > this.width + 50 || p.y > this.height + 50) { return false; }
-        if (verificarColisaoDeProjetilComPlayer(p.x, p.y, p.r, this.player.x, this.player.y, this.player.hitboxRadius)) {
+        p.x += p.xVel;
+        p.y += p.yVel;
+        if (
+          p.x < -50 ||
+          p.y < -50 ||
+          p.x > this.width + 50 ||
+          p.y > this.height + 50
+        ) {
+          return false;
+        }
+        if (
+          verificarColisaoDeProjetilComPlayer(
+            p.x,
+            p.y,
+            p.r,
+            this.player.x,
+            this.player.y,
+            this.player.hitboxRadius
+          )
+        ) {
           this.vidas--;
-          if (this.vidas <= 0) { this.estado = "morte"; this.limparTimers(); }
+          if (this.vidas <= 0) {
+            this.setState("morte");
+            this.limparTimers();
+          }
           return false;
         }
         p.rotation = (p.rotation || 0) + 0.05;
-        if (p.img) { drawImage(ctx, p.img, p.x, p.y, p.width, p.height, p.rotation); }
+        if (p.img) {
+          drawImage(ctx, p.img, p.x, p.y, p.width, p.height, p.rotation);
+        }
         return true;
       });
     },
     processarPowerUps(ctx) {
       this.powerUps = this.powerUps.filter((pu) => {
         pu.y += 2;
-        if (verificarColisaoDeProjetilComPlayer(pu.x, pu.y, pu.r, this.player.x, this.player.y, this.player.hitboxRadius)) {
-          this.coletarPowerUp(pu); return false;
+        if (
+          verificarColisaoDeProjetilComPlayer(
+            pu.x,
+            pu.y,
+            pu.r,
+            this.player.x,
+            this.player.y,
+            this.player.hitboxRadius
+          )
+        ) {
+          this.coletarPowerUp(pu);
+          return false;
         }
         const img = pu.type === "life" ? this.imagens.vida : this.imagens.slow;
         // ### ALTERADO: Tamanho dos power-ups reduzido ###
         const size = 50;
         pu.rotation = (pu.rotation || 0) + 0.03;
-        if (img) { drawImage(ctx, img, pu.x, pu.y, size, size, pu.rotation); }
+        if (img) {
+          drawImage(ctx, img, pu.x, pu.y, size, size, pu.rotation);
+        }
         return pu.y <= this.height + 50;
       });
     },
     coletarPowerUp(powerUp) {
-      if (powerUp.type === "life") { this.vidas++; this.pontos += 50; }
-      else if (powerUp.type === "slow") {
-        this.slowAtivo = true; this.pontos += 20;
-        if (this.slowTimeoutId) { clearTimeout(this.slowTimeoutId); }
-        this.slowTimeoutId = setTimeout(() => { this.slowAtivo = false; this.slowTimeoutId = null; }, 5000);
+      if (powerUp.type === "life") {
+        this.vidas++;
+        this.pontos += 50;
+      } else if (powerUp.type === "slow") {
+        this.slowAtivo = true;
+        this.pontos += 20;
+        if (this.slowTimeoutId) {
+          clearTimeout(this.slowTimeoutId);
+        }
+        this.slowTimeoutId = setTimeout(() => {
+          this.slowAtivo = false;
+          this.slowTimeoutId = null;
+        }, 5000);
       }
     },
     moverBoss() {
@@ -766,27 +1027,35 @@ export default {
       this.boss.x += this.bossDirecaoX * (this.boss.velocidade * 0.75);
       this.boss.y += this.bossDirecao * this.boss.velocidade;
       const halfSize = this.boss.size / 2;
-      if (this.boss.y + halfSize > this.height - 50 || this.boss.y - halfSize < 50) { this.bossDirecao *= -1; }
-      if (this.boss.x + halfSize > this.width || this.boss.x - halfSize < 0) { this.bossDirecaoX *= -1; }
+      if (
+        this.boss.y + halfSize > this.height - 50 ||
+        this.boss.y - halfSize < 50
+      ) {
+        this.bossDirecao *= -1;
+      }
+      if (this.boss.x + halfSize > this.width || this.boss.x - halfSize < 0) {
+        this.bossDirecaoX *= -1;
+      }
     },
     sairJogo() {
       alert("O jogo seria fechado aqui!");
     },
     updateVolume(type, value) {
-      if (type === 'musica') {
+      if (type === "musica") {
         this.volumeMusica = parseInt(value);
-        if (this.bgMusic) { this.bgMusic.volume = this.volumeMusica / 100; }
+        if (this.bgMusic) {
+          this.bgMusic.volume = this.volumeMusica / 100;
+        }
       }
     },
     toggleGameMenu() {
       this.inGameMenuOpen = !this.inGameMenuOpen;
       if (this.inGameMenuOpen) {
         this.limparTimers();
-        if (this.bgMusic) { this.bgMusic.pause(); }
       } else {
         this.iniciarLoop();
         this.iniciarTimer();
-        if (this.bgMusic) { this.bgMusic.play().catch(e => console.warn("Erro ao tentar tocar música ao fechar menu in-game:", e)); }
+
         if (this.faseAtualDoJogo === 5) {
           this.iniciarLogicaFase5();
         }
@@ -803,12 +1072,19 @@ export default {
     voltarAoMenuPrincipal() {
       this.inGameMenuOpen = false;
       setTimeout(() => {
-        this.estado = 'menu';
+        this.setState("menu");
         this.limparTimers();
         this.resetarEstadoDoJogo();
         if (this.bgMusic) {
           this.bgMusic.currentTime = 0;
-          this.bgMusic.play().catch(e => console.warn("Erro ao tocar música ao voltar ao menu principal:", e));
+          this.bgMusic
+            .play()
+            .catch((e) =>
+              console.warn(
+                "Erro ao tocar música ao voltar ao menu principal:",
+                e
+              )
+            );
         }
       }, 500);
     },
@@ -826,670 +1102,6 @@ export default {
       this.bgMusic.pause();
       this.bgMusic = null;
     }
-  }
+  },
 };
 </script>
-
-<style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-.game-container {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  font-family: 'Press Start 2P', cursive, Arial, sans-serif;
-}
-
-.background-video {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  object-fit: cover;
-  z-index: -1;
-}
-
-canvas {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: transparent;
-  z-index: 0;
-}
-
-.main-menu {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: linear-gradient(135deg, rgba(15, 0, 0, 0.95), rgba(40, 0, 0, 0.95), rgba(15, 0, 0, 0.95));
-  background-image: url('data:image/svg+base64,PHN2ZyB2aWV3Qm94PSIwIDAgOCA4IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9MDBoOHYwSDB6TTMgMGgxVjFoLTF6TTIgMmgxVjNoLTF6TTUgMmgxVjNoLTF6TTIgNWgxVjZoLTF6TTUgNWgxVjZoLTF6TTMgN2gxVjhoLTF6IiBmaWxsPSIjMmYwMDAwIiBmaWxsLW9wYWNpdHk9IjAuMSIvPjwvc3ZnPg==');
-  background-size: 8px 8px;
-  z-index: 10;
-}
-
-.menu-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px;
-  background: linear-gradient(145deg, #1a0000, #3a0000);
-  border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 50px rgba(255, 0, 0, 0.2);
-  animation: fadeInScale 0.7s ease-out forwards;
-  border: 2px solid #5a0000;
-  width: 90%;
-  max-width: 1600px;
-}
-
-.game-logo {
-  width: 75%;
-  max-width: 450px;
-  margin-bottom: 15px;
-  filter: drop-shadow(0 0 15px rgba(255, 50, 50, 0.7)) brightness(1.1);
-  animation: logoPulse 2s infinite alternate ease-in-out;
-}
-
-@keyframes logoPulse {
-  0% { transform: scale(1);
-  filter: drop-shadow(0 0 15px rgba(255, 50, 50, 0.7));
-  }
-  100% { transform: scale(1.03);
-  filter: drop-shadow(0 0 25px rgba(255, 0, 0, 0.9)); }
-}
-
-.button-group {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  width: 100%;
-  max-width: 350px;
-}
-
-.menu-button {
-  padding: 10px 15px;
-  font-size: 1em;
-  font-weight: bold;
-  color: #fff;
-  background-color: #550000;
-  border: 3px solid #ff5555;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(.25,.8,.25,1);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
-  position: relative;
-  overflow: hidden;
-}
-
-.menu-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-  transition: all 0.7s cubic-bezier(.25,.8,.25,1);
-}
-
-.menu-button:hover::before {
-  left: 100%;
-}
-
-.menu-button:hover {
-  background-color: #ff3333;
-  transform: translateY(-5px) scale(1.02);
-  box-shadow: 0 10px 25px rgba(255, 51, 51, 0.6), 0 0 30px rgba(255, 0, 0, 0.4);
-  border-color: #fff;
-}
-
-.menu-button:active {
-  transform: translateY(0) scale(0.98);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-  background-color: #aa0000;
-  border-color: #ff0000;
-}
-
-.historinha, .gameover-screen {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: #000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 20;
-}
-
-.video-player {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  background-color: black;
-}
-
-.skip-intro-button {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  padding: 10px 20px;
-  background-color: rgba(0, 0, 0, 0.7);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 0.9em;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
-  z-index: 25;
-}
-
-.skip-intro-button:hover {
-  background-color: rgba(255, 50, 50, 0.7);
-  border-color: #ffcccc;
-}
-
-.options-screen, .credits-screen {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: linear-gradient(135deg, rgba(15, 0, 0, 0.95), rgba(40, 0, 0, 0.95), rgba(15, 0, 0, 0.95));
-  background-image: url('data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgOCA4IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9MkYwMDAwIiBmaWxsLW9wYWNpdHk9IjAuMSIvPjwvc3ZnPg==');
-  background-size: 8px 8px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  color: white;
-  z-index: 10;
-  padding: 20px;
-  box-sizing: border-box;
-}
-
-.options-content, .credits-content {
-    align-items: center;
-    flex-direction: column;
-    display: flex;
-    background: rgba(30, 0, 0, 0.85);
-    padding: 15px;
-    border-radius: 15px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 0, 0, 0.1);
-    border: 2px solid #6a0000;
-    width: 90%;
-    max-width: 600px;
-    text-align: center;
-}
-
-.credits-names {
-  margin: 20px 0;
-  line-height: 1.8;
-  font-size: 1.2em;
-  color: #eee;
-}
-
-.credits-special {
-  margin: 30px 0;
-  line-height: 1.6;
-  font-size: 1.1em;
-  color: #ddd;
-  max-width: 80%;
-}
-
-.credits-special strong {
-  color: #ffcc00;
-  display: block;
-  margin-bottom: 10px;
-}
-
-.screen-title {
-  font-size: 1.5em;
-  margin-bottom: 15px;
-  color: #ff6666;
-  text-shadow: 0 0 15px rgba(255, 100, 100, 0.8);
-  letter-spacing: 3px;
-  text-transform: uppercase;
-}
-
-.option-group {
-  background: rgba(40, 0, 0, 0.7);
-  padding: 15px 20px;
-  border-radius: 10px;
-  margin-bottom: 20px;
-  width: 100%;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-  border: 1px solid #6a0000;
-}
-
-.option-group h3 {
-  font-size: 1em;
-  margin-top: 0;
-  margin-bottom: 15px;
-  color: #ffcc00;
-  text-align: center;
-  text-shadow: 0 0 5px rgba(255, 204, 0, 0.5);
-}
-
-.volume-control {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  justify-content: center;
-}
-
-.volume-control label {
-  font-size: 1.1em;
-  color: #ccc;
-  min-width: 70px;
-  text-align: right;
-}
-
-.volume-control input[type="range"] {
-  width: 60%;
-  -webkit-appearance: none;
-  height: 10px;
-  background: #333;
-  border-radius: 5px;
-  outline: none;
-  transition: background 0.2s ease;
-}
-
-.volume-control input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #ff3333;
-  cursor: pointer;
-  border: 3px solid #fff;
-  box-shadow: 0 0 8px rgba(255, 51, 51, 0.7);
-}
-
-.volume-control span {
-  font-weight: bold;
-  color: #ffcc00;
-  font-size: 1.2em;
-  min-width: 50px;
-  text-align: left;
-}
-
-.controls-list {
-  list-style: none;
-  padding: 0;
-  text-align: center;
-}
-
-.controls-list li {
-  font-size: 1.2em;
-  margin-bottom: 12px;
-  color: #eee;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-}
-
-.credits-text {
-    font-size: 1.1em;
-    line-height: 1.8;
-    color: #ddd;
-    margin-bottom: 40px;
-    text-align: left;
-    white-space: pre-line;
-}
-
-.credits-text strong {
-    color: #ffcc00;
-}
-
-.back-button {
-  margin-top: 30px;
-  width: auto;
-  padding: 15px 40px;
-}
-
-.in-game-ui {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 5;
-}
-
-.hamburger-button {
-  position: absolute;
-  top: 25px;
-  right: 25px;
-  background-color: rgba(0, 0, 0, 0.7);
-  color: white;
-  border: 3px solid #ff5555;
-  border-radius: 50%;
-  width: 55px;
-  height: 55px;
-  font-size: 2em;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  z-index: 6;
-  pointer-events: auto;
-  transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
-  box-shadow: 0 0 10px rgba(255, 50, 50, 0.5);
-}
-
-.hamburger-button:hover {
-  background-color: rgba(255, 51, 51, 0.8);
-  border-color: #fff;
-  transform: scale(1.05);
-}
-.hamburger-button:active {
-    transform: scale(0.95);
-}
-
-.in-game-menu {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 350px;
-  height: 100vh;
-  background: linear-gradient(90deg, rgba(15, 0, 0, 0.98), rgba(40, 0, 0, 0.98));
-  box-shadow: -8px 0 20px rgba(0, 0, 0, 0.7);
-  padding: 50px 30px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  z-index: 10;
-  pointer-events: auto;
-}
-
-.in-game-menu-title {
-  font-size: 2.5em;
-  color: #ffcc00;
-  margin-bottom: 50px;
-  text-shadow: 0 0 8px rgba(255, 204, 0, 0.6);
-  letter-spacing: 2px;
-}
-
-.in-game-menu-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  width: 100%;
-  margin-top: auto;
-  padding-bottom: 30px;
-}
-
-.in-game-button {
-    font-size: 1.1em;
-    padding: 15px 20px;
-}
-
-.option-group-compact {
-  width: 100%;
-  margin-bottom: 40px;
-  text-align: center;
-  background: rgba(40, 0, 0, 0.7);
-  padding: 20px;
-  border-radius: 10px;
-  border: 1px solid #6a0000;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
-}
-
-.option-group-compact h3 {
-  font-size: 1.4em;
-  color: #ff3333;
-  margin-bottom: 15px;
-}
-
-.volume-control-compact {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-
-.volume-control-compact label,
-.volume-control-compact span {
-  font-size: 1em;
-  color: #ccc;
-}
-
-.volume-control-compact input[type="range"] {
-  width: 180px;
-  height: 8px;
-  background: #333;
-  border-radius: 5px;
-  outline: none;
-  transition: background 0.2s ease;
-  -webkit-appearance: none;
-}
-
-.volume-control-compact input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #ff3333;
-  cursor: pointer;
-  border: 2px solid #fff;
-  box-shadow: 0 0 7px rgba(255, 50, 50, 0.6);
-}
-
-.volume-control-compact span {
-  font-weight: bold;
-  color: #ff6666;
-  min-width: 35px;
-  text-align: left;
-}
-
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.5s ease;
-}
-.fade-enter-from, .fade-leave-to {
-  opacity: 0;
-}
-
-.slide-up-enter-active, .slide-up-leave-active {
-  transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
-}
-.slide-up-enter-from, .slide-up-leave-to {
-  transform: translateY(100vh);
-}
-
-.slide-down-enter-active, .slide-down-leave-active {
-  transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
-}
-.slide-down-enter-from, .slide-down-leave-to {
-  transform: translateY(-100vh);
-}
-
-.slide-right-enter-active, .slide-right-leave-active {
-  transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
-}
-.slide-right-enter-from, .slide-right-leave-to {
-  transform: translateX(100%);
-}
-
-.countdown-screen {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 15;
-}
-
-.countdown-text {
-  font-size: 12em;
-  color: #ffcc00;
-  text-shadow: 0 0 25px rgba(255, 204, 0, 0.8), 0 0 10px #000;
-  animation: countdown-pulse 1s infinite;
-}
-
-@keyframes countdown-pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
-}
-
-@keyframes fadeInScale {
-  from { opacity: 0; transform: scale(0.9); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-.fase5-barra-container {
-    position: absolute;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 60%;
-    max-width: 800px;
-    height: 25px;
-    background-color: rgba(0, 0, 0, 0.7);
-    border: 2px solid #ffcc00;
-    border-radius: 10px;
-    pointer-events: auto;
-    box-shadow: 0 0 15px rgba(255, 204, 0, 0.5);
-}
-.fase5-barra-progresso {
-    height: 100%;
-    background: linear-gradient(90deg, #ffcc00, #ff8800);
-    border-radius: 7px;
-    transition: width 1s linear;
-}
-.sombra-degrade {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background-color: black;
-    z-index: 98;
-}
-.fade-slow-enter-active, .fade-slow-leave-active {
-    transition: opacity 2s ease;
-}
-.fade-slow-enter-from, .fade-slow-leave-to {
-    opacity: 0;
-}
-.tela-final {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: rgba(0, 0, 0, 0.9);
-    z-index: 100;
-}
-.tela-final-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 30px;
-    background: linear-gradient(145deg, #1a0800, #3a1d00);
-    padding: 50px;
-    border-radius: 20px;
-    border: 2px solid #ffcc00;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 50px rgba(255, 204, 0, 0.3);
-    text-align: center;
-}
-.final-stats p {
-    font-size: 1.5em;
-    color: #eee;
-    margin: 10px 0;
-}
-.final-stats span {
-    color: #ffcc00;
-    font-weight: bold;
-}
-
-.game-hud {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  z-index: 5;
-  pointer-events: none;
-}
-
-.hud-container {
-  background-color: rgba(0, 0, 0, 0.7);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  padding: 12px 15px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-  font-family: 'Press Start 2P', cursive;
-}
-
-.hud-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 8px;
-  font-size: 0.8em;
-  color: white;
-  text-shadow: 1px 1px 2px black;
-}
-
-.hud-item:last-child {
-  margin-bottom: 0;
-}
-
-.hud-label {
-  min-width: 70px;
-  color: #ffcc00;
-}
-
-.hud-value {
-  margin-left: 10px;
-}
-
-.health-bar-container {
-  flex-grow: 1;
-  height: 12px;
-  background-color: rgba(70, 70, 70, 0.7);
-  border-radius: 4px;
-  overflow: hidden;
-  margin-left: 10px;
-  border: 1px solid rgba(0, 0, 0, 0.5);
-}
-
-.health-bar {
-  height: 100%;
-  background-color: #ff3333;
-  background-image: linear-gradient(to right, #ff0000, #ff6666);
-  border-radius: 3px;
-  transition: width 0.3s ease;
-}
-
-@media (max-width: 768px) {
-  .hud-item {
-    font-size: 0.7em;
-  }
-  
-  .hud-label {
-    min-width: 60px;
-  }
-  
-  .health-bar-container {
-    height: 10px;
-  }
-}
-</style>
