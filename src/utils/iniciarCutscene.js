@@ -27,7 +27,7 @@ export function iniciarCutsceneVideos() {
   }
 
   function iniciarCutsceneFinal(ctx) {
-    const videoPlayerFinal = ctx.$refs.videoPlayerFinal;
+    const videoPlayerFinal = ctx.$refs.videoMortePlayer;
     if (videoPlayerFinal) {
       videoPlayerFinal.play();
     }

@@ -502,7 +502,7 @@ export default {
         if (this.countdownValue > 1) {
           this.countdownValue--;
         } else if (this.countdownValue === 1) {
-          this.countdownValue = "JÁ!";
+          this.countdownValue = "JA!";
           setTimeout(() => {
             clearInterval(this.countdownIntervalId);
             this.countdownIntervalId = null;
@@ -777,7 +777,7 @@ export default {
       this.tempoFinal = this.tempoTotalDeJogo;
       this.setState("fadeParaFinal");
       setTimeout(() => {
-        this.iniciarCutsceneFinal();
+        this.setState("cutsceneFinal");
       }, 2000);
     },
     iniciarLoop() {
@@ -1036,9 +1036,6 @@ export default {
       if (this.boss.x + halfSize > this.width || this.boss.x - halfSize < 0) {
         this.bossDirecaoX *= -1;
       }
-    },
-    sairJogo() {
-      alert("O jogo seria fechado aqui!");
     },
     updateVolume(type, value) {
       if (type === "musica") {
