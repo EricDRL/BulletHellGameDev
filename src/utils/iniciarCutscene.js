@@ -1,5 +1,5 @@
 export function iniciarCutsceneVideos() {
-  function mostrarCutsceneFase(ctx) {
+  function mostrarCutsceneFase(ctx, proximaFase) {
     const cutsceneInfo = ctx.cutsceneFaseMap[proximaFase];
     if (cutsceneInfo && !ctx.cutscenesFaseJaVistas[proximaFase]) {
       ctx.setState("cutsceneFase");

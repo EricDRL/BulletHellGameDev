@@ -447,8 +447,8 @@ export default {
         this.iniciarGameplay(this.faseAtualDoJogo);
       }
     },
-    mostrarCutsceneFase() {
-      mostrarCutsceneFase(this);
+    mostrarCutsceneFase(proximaFase) {
+      mostrarCutsceneFase(this, proximaFase);
     },
     iniciarCutsceneFase3() {
       iniciarCutsceneFase3(this);
