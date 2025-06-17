@@ -522,6 +522,7 @@ export default {
       this.setupCollisionCanvas(this.nivel);
       this.pontos += 25;
       this.velocidadeProjeteis = this.velocidadeProjeteisPorFase[this.nivel];
+      this.tempo = 0;
       if (this.nivel === 5) {
         this.player.x = 220;
         this.player.y = this.height / 2;
@@ -540,6 +541,9 @@ export default {
       this.faseAtualDoJogo = faseParaIniciar;
       this.velocidadeProjeteis =
         this.velocidadeProjeteisPorFase[faseParaIniciar];
+      this.tempo = 0;
+
+      // Define posição inicial
       if (this.faseAtualDoJogo === 5) {
         this.player.x = 220;
         this.player.y = this.height / 2;
@@ -547,21 +551,37 @@ export default {
         this.player.x = this.width / 2;
         this.player.y = this.height / 2;
       }
+
       this.setupCollisionCanvas(this.nivel);
       this.setupInimigos();
+
+      // 🔊 REINICIA A MÚSICA DE FUNDO SE TIVER SIDO PAUSADA
+      if (this.bgMusic) {
+        this.bgMusic.volume = this.volumeMusica / 100;
+        if (this.bgMusic.paused) {
+          this.bgMusic.currentTime = 0;
+          this.bgMusic
+            .play()
+            .catch((e) => console.warn("Erro ao retomar música:", e));
+        }
+      }
+
       this.$nextTick(() => {
         this.setupControles();
         this.iniciarTimer();
         this.iniciarLoop();
-        // ### ADICIONADO: Inicia o timer TOTAL apenas uma vez ###
+
+        // Inicia o timer total apenas na Fase 1, uma vez
         if (faseParaIniciar === 1 && !this.tempoTotalInterval) {
           this.iniciarTimerTotal();
         }
       });
+
       if (this.faseAtualDoJogo === 5) {
         this.iniciarLogicaFase5();
       }
     },
+
     renascer() {
       if (this.state !== "morte") return;
       setTimeout(() => {
@@ -732,7 +752,7 @@ export default {
       this.tempoInterval = setInterval(() => {
         if (this.state !== "jogando" || this.inGameMenuOpen) return;
         this.tempo++;
-        if (this.tempo % 25 === 0 && this.nivel < 4 && !this.trocaFaseDelay) {
+        if (this.tempo % 20 === 0 && this.nivel < 4 && !this.trocaFaseDelay) {
           this.trocaFaseDelay = true;
           setTimeout(() => {
             if (this.nivel === 1) {
@@ -746,7 +766,7 @@ export default {
           }, 3000);
         } else if (
           this.tempo > 0 &&
-          this.tempo % 25 === 0 &&
+          this.tempo % 20 === 0 &&
           this.nivel === 4 &&
           !this.trocaFaseDelay
         ) {
@@ -1061,11 +1081,9 @@ export default {
     pularFase() {
       if (this.nivel >= 5) return;
       this.inGameMenuOpen = false;
-      if (this.bgMusic) {
-        this.bgMusic.pause();
-      }
       this.mostrarCutsceneFase(this.nivel + 1);
     },
+
     voltarAoMenuPrincipal() {
       this.inGameMenuOpen = false;
       setTimeout(() => {
